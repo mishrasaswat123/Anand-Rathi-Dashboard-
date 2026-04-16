@@ -11,6 +11,7 @@
     .box { flex:1; min-width:150px; background:#132f55; padding:15px; border-radius:8px; text-align:center; }
     select { padding:6px; margin-bottom:10px; }
     canvas { background:#0f2b4c; border-radius:10px; }
+    #banner { color:orange; margin-bottom:10px; }
   </style>
 </head>
 
@@ -18,15 +19,16 @@
 
 <h1>📊 Trading Intelligence Dashboard</h1>
 
+<div id="banner">⏳ Auto refresh every 30 seconds</div>
+<h3 id="marketTitle"></h3>
+
 <select id="stock">
   <option value="ANANDRATHI.NS">Anand Rathi</option>
   <option value="TCS.NS">TCS</option>
   <option value="RELIANCE.NS">Reliance</option>
 </select>
 
-<div class="card">
-  <h2 id="price">--</h2>
-</div>
+<div class="card"><h2 id="price">--</h2></div>
 
 <div class="card">
   <b id="signal"></b>
@@ -53,47 +55,62 @@
 
 let chart;
 
+function getMarketPhase() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const t = h * 60 + m;
+
+  const open = 9 * 60 + 15;
+  const close = 15 * 60 + 30;
+  const post = 16 * 60 + 30;
+
+  if (t >= open && t <= close) return "LIVE";
+  if (t > close && t < post) return "POST";
+  return "FORECAST";
+}
+
+function updateTitle() {
+  const phase = getMarketPhase();
+  const today = new Date().toLocaleDateString();
+
+  if (phase === "LIVE")
+    document.getElementById("marketTitle").innerText = `Live Market Intraday - ${today}`;
+  else if (phase === "POST")
+    document.getElementById("marketTitle").innerText = `Post Market - ${today}`;
+  else {
+    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString();
+    document.getElementById("marketTitle").innerText = `Forecast for - ${tomorrow}`;
+  }
+}
+
 async function loadData() {
   const symbol = document.getElementById("stock").value;
 
   const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
   const data = await res.json();
 
-  console.log("API DATA:", data);
+  updateTitle();
 
-  // PRICE
   document.getElementById("price").innerText = "₹" + data.price;
-
-  // SIGNAL
   document.getElementById("signal").innerText =
     `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
 
-  // PREDICTIONS
   document.getElementById("hour").innerText = "₹" + data.predictions.hourly;
   document.getElementById("day1").innerText = "₹" + data.predictions.day1;
   document.getElementById("day2").innerText = "₹" + data.predictions.day2;
   document.getElementById("day3").innerText = "₹" + data.predictions.day3;
   document.getElementById("week").innerText = "₹" + data.predictions.weekly;
 
-  // SUPPORT/RESISTANCE
   document.getElementById("support").innerText = "₹" + data.support;
   document.getElementById("resistance").innerText = "₹" + data.resistance;
 
-  // CHART
-  const forecast = data.predictions.hourlySeries;
-
-  if (!forecast || forecast.length === 0) {
-    console.log("No forecast data");
-    return;
-  }
-
+  const forecast = data.predictions.hourlySeries || [];
   const labels = forecast.map((_, i) => "T+" + i);
 
   if (chart) chart.destroy();
 
-  const ctx = document.getElementById("chart").getContext("2d");
-
-  chart = new Chart(ctx, {
+  chart = new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
       labels,
@@ -121,8 +138,10 @@ async function loadData() {
 
 document.getElementById("stock").addEventListener("change", loadData);
 
+// ⛔ changed from 5 sec → 30 sec (IMPORTANT)
+setInterval(loadData, 30000);
+
 loadData();
-setInterval(loadData, 5000);
 
 </script>
 
