@@ -5,43 +5,72 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { background:#061a2f; color:white; font-family:Arial; padding:20px; }
+    body {
+      background:#061a2f;
+      color:white;
+      font-family:Arial;
+      padding:20px;
+    }
 
-    .card { background:#0f2b4c; padding:20px; border-radius:10px; margin-bottom:20px; }
+    h1 { margin-bottom:10px; }
 
-    .grid { display:flex; gap:15px; flex-wrap:wrap; }
+    .card {
+      background:#0f2b4c;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+    }
+
+    .grid {
+      display:flex;
+      gap:15px;
+      flex-wrap:wrap;
+    }
 
     .box {
-      flex:1; min-width:150px;
+      flex:1;
+      min-width:150px;
       background:#132f55;
       padding:15px;
       border-radius:8px;
       text-align:center;
     }
 
-    select { padding:6px; margin-bottom:10px; }
+    select {
+      padding:8px;
+      border-radius:6px;
+      margin-bottom:15px;
+    }
 
-    canvas { background:#0f2b4c; border-radius:10px; }
+    canvas {
+      background:#0f2b4c;
+      border-radius:10px;
+      padding:10px;
+    }
 
-    /* 🔥 SCROLLING BANNER */
+    /* scrolling banner */
     #ticker {
-      white-space: nowrap;
-      overflow: hidden;
-      color: orange;
-      margin-bottom: 10px;
+      overflow:hidden;
+      white-space:nowrap;
+      color:orange;
+      margin-bottom:10px;
     }
 
     #ticker span {
-      display: inline-block;
-      padding-left: 100%;
-      animation: scroll 12s linear infinite;
+      display:inline-block;
+      padding-left:100%;
+      animation:scroll 12s linear infinite;
     }
 
     @keyframes scroll {
-      from { transform: translateX(0); }
-      to { transform: translateX(-100%); }
+      from { transform:translateX(0); }
+      to { transform:translateX(-100%); }
     }
 
+    #price {
+      font-size:28px;
+      font-weight:bold;
+    }
   </style>
 </head>
 
@@ -50,10 +79,8 @@
 <h1>📊 Trading Intelligence Dashboard</h1>
 
 <div id="ticker">
-  <span>⏳ Auto refresh every 30 seconds | Live AI-driven trading insights</span>
+  <span>⏳ Auto refresh every 30 seconds | Live market data</span>
 </div>
-
-<h3 id="marketTitle"></h3>
 
 <select id="stock">
   <option value="ANANDRATHI.NS">Anand Rathi</option>
@@ -61,10 +88,12 @@
   <option value="RELIANCE.NS">Reliance</option>
 </select>
 
-<div class="card"><h2 id="price">--</h2></div>
+<div class="card">
+  <div id="price">Loading...</div>
+</div>
 
 <div class="card">
-  <b id="signal"></b>
+  <div id="signal"></div>
 </div>
 
 <div class="card grid">
@@ -85,121 +114,85 @@
 </div>
 
 <script>
-
 let chart;
 
-/* 🔥 FORCE IST TIME */
-function getISTTime() {
-  const now = new Date();
-  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  return ist;
-}
+async function loadData() {
+  try {
+    const symbol = document.getElementById("stock").value;
 
-function getMarketPhase() {
-  const now = getISTTime();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const t = h * 60 + m;
+    const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
+    const data = await res.json();
 
-  const open = 9 * 60 + 15;
-  const close = 15 * 60 + 30;
-  const post = 16 * 60 + 30;
+    // price change
+    const change = data.price - data.previousClose;
+    const changePct = ((change / data.previousClose) * 100).toFixed(2);
 
-  if (t >= open && t <= close) return "LIVE";
-  if (t > close && t < post) return "POST";
-  return "FORECAST";
-}
+    const priceEl = document.getElementById("price");
 
-function updateTitle() {
-  const phase = getMarketPhase();
-  const now = getISTTime();
+    priceEl.innerText =
+      `₹${data.price.toFixed(2)} (${change.toFixed(2)} | ${changePct}%)`;
 
-  if (phase === "LIVE")
-    document.getElementById("marketTitle").innerText =
-      `Live Market Intraday - ${now.toDateString()}`;
+    priceEl.style.color = change >= 0 ? "lime" : "red";
 
-  else if (phase === "POST")
-    document.getElementById("marketTitle").innerText =
-      `Post Market - ${now.toDateString()}`;
+    // signal
+    document.getElementById("signal").innerText =
+      `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
 
-  else {
-    const tomorrow = new Date(now.getTime() + 86400000);
-    document.getElementById("marketTitle").innerText =
-      `Forecast for - ${tomorrow.toDateString()}`;
+    // predictions
+    document.getElementById("hour").innerText = "₹" + data.predictions.hourly;
+    document.getElementById("day1").innerText = "₹" + data.predictions.day1;
+    document.getElementById("day2").innerText = "₹" + data.predictions.day2;
+    document.getElementById("day3").innerText = "₹" + data.predictions.day3;
+    document.getElementById("week").innerText = "₹" + data.predictions.weekly;
+
+    // levels
+    document.getElementById("support").innerText = "₹" + data.support;
+    document.getElementById("resistance").innerText = "₹" + data.resistance;
+
+    // chart
+    const forecast = data.predictions.hourlySeries || [];
+    const labels = forecast.map((_, i) => "T+" + i);
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Forecast",
+          data: forecast,
+          borderColor: "orange",
+          borderDash: [5,5],
+          tension: 0.4
+        }]
+      },
+      options: {
+        animation: false,
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "white" } }
+        },
+        scales: {
+          x: { ticks: { color: "white" } },
+          y: { ticks: { color: "white" } }
+        },
+        elements: {
+          point: { radius: 0 }
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById("price").innerText = "Error loading data";
   }
 }
 
-/* 🔥 SMOOTH FORECAST (NO RANDOM JUMPS) */
-function smoothSeries(series, basePrice) {
-  return series.map((val, i) => {
-    const drift = (val - series[0]) * 0.3;  // reduce randomness
-    return +(basePrice + drift).toFixed(2);
-  });
-}
-
-async function loadData() {
-  const symbol = document.getElementById("stock").value;
-
-  const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
-  const data = await res.json();
-
-  updateTitle();
-
-  document.getElementById("price").innerText = "₹" + data.price;
-
-  document.getElementById("signal").innerText =
-    `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
-
-  document.getElementById("hour").innerText = "₹" + data.predictions.hourly;
-  document.getElementById("day1").innerText = "₹" + data.predictions.day1;
-  document.getElementById("day2").innerText = "₹" + data.predictions.day2;
-  document.getElementById("day3").innerText = "₹" + data.predictions.day3;
-  document.getElementById("week").innerText = "₹" + data.predictions.weekly;
-
-  document.getElementById("support").innerText = "₹" + data.support;
-  document.getElementById("resistance").innerText = "₹" + data.resistance;
-
-  let forecast = data.predictions.hourlySeries || [];
-
-  /* 🔥 KEY FIX: Anchor forecast to current price */
-  forecast = smoothSeries(forecast, data.price);
-
-  const labels = forecast.map((_, i) => "T+" + i);
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Forecast",
-        data: forecast,
-        borderColor: "orange",
-        borderDash: [5,5],
-        tension: 0.4
-      }]
-    },
-    options: {
-      animation: false, // 🔥 stop flicker
-      plugins: {
-        legend: { labels: { color: "white" } }
-      },
-      scales: {
-        x: { ticks: { color: "white" } },
-        y: { ticks: { color: "white" } }
-      }
-    }
-  });
-}
-
-/* 🔥 slower refresh */
-setInterval(loadData, 30000);
-
+// reload
 document.getElementById("stock").addEventListener("change", loadData);
-
 loadData();
-
+setInterval(loadData, 30000);
 </script>
 
 </body>
