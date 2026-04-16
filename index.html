@@ -8,40 +8,10 @@
 ```
 <style>
     body { background:#061a2f; color:white; font-family:Arial; padding:20px; }
-    h1 { margin-bottom:10px; }
-
-    .card {
-        background:#0f2b4c;
-        padding:20px;
-        border-radius:10px;
-        margin-bottom:20px;
-    }
-
-    .grid {
-        display:flex;
-        gap:15px;
-        flex-wrap:wrap;
-    }
-
-    .box {
-        flex:1;
-        min-width:150px;
-        background:#132f55;
-        padding:15px;
-        border-radius:8px;
-        text-align:center;
-    }
-
-    select {
-        padding:6px;
-        margin-bottom:10px;
-    }
-
-    canvas {
-        background:#0f2b4c;
-        border-radius:10px;
-        padding:10px;
-    }
+    .card { background:#0f2b4c; padding:20px; border-radius:10px; margin-bottom:20px; }
+    .grid { display:flex; gap:15px; flex-wrap:wrap; }
+    .box { flex:1; min-width:150px; background:#132f55; padding:15px; border-radius:8px; text-align:center; }
+    canvas { background:#0f2b4c; border-radius:10px; padding:10px; }
 </style>
 ```
 
@@ -57,8 +27,7 @@
     <option value="RELIANCE.NS">Reliance</option>
 </select>
 
-<div class="card" id="priceBox">Loading...</div>
-
+<div class="card" id="priceBox"></div>
 <div class="card" id="signalBox"></div>
 
 <div class="card grid">
@@ -72,99 +41,44 @@
 <div class="card" id="levels"></div>
 
 <div class="card">
-    <h3 id="chartTitle">Loading chart...</h3>
     <canvas id="chart"></canvas>
 </div>
 
 <script>
 
-let chart = null;
-
-function getMarketPhase() {
-    const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-
-    if (minutes >= 555 && minutes <= 930) return "LIVE";     // 9:15–3:30
-    if (minutes > 930 && minutes < 990) return "POST";       // 3:30–4:30
-    return "FORECAST";
-}
-
-function getChartTitle() {
-    const phase = getMarketPhase();
-    const today = new Date().toLocaleDateString();
-    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString();
-
-    if (phase === "LIVE") return "Live Market Intraday - " + today;
-    if (phase === "POST") return "Post Market - " + today;
-    return "Forecast for - " + tomorrow;
-}
+let chart;
 
 async function loadData() {
-    try {
-        const symbol = document.getElementById("stock").value;
+    const symbol = document.getElementById("stock").value;
 
-        const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
-        const data = await res.json();
+    const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
+    const data = await res.json();
 
-        document.getElementById("priceBox").innerHTML =
-            `₹${data.price}<br>Market: ${getMarketPhase()}`;
+    document.getElementById("priceBox").innerHTML =
+        `₹${data.price}`;
 
-        document.getElementById("signalBox").innerHTML =
-            `Signal: ${data.signal}<br>Bias: ${data.bias}<br>Risk: ${data.risk}`;
+    document.getElementById("signalBox").innerHTML =
+        `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
 
-        document.getElementById("hourly").innerHTML =
-            `Next Hour<br>₹${data.predictions.hourly}`;
+    document.getElementById("hourly").innerHTML = `Next Hour<br>₹${data.predictions.hourly}`;
+    document.getElementById("day1").innerHTML = `Day 1<br>₹${data.predictions.threeDay}`;
+    document.getElementById("day2").innerHTML = `Day 2<br>₹${data.predictions.threeDay}`;
+    document.getElementById("day3").innerHTML = `Day 3<br>₹${data.predictions.threeDay}`;
+    document.getElementById("weekly").innerHTML = `Weekly<br>₹${data.predictions.weekly}`;
 
-        document.getElementById("day1").innerHTML =
-            `Day 1<br>₹${data.predictions.threeDay}`;
+    document.getElementById("levels").innerHTML =
+        `Support: ₹${data.support} | Resistance: ₹${data.resistance}`;
 
-        document.getElementById("day2").innerHTML =
-            `Day 2<br>₹${data.predictions.threeDay}`;
-
-        document.getElementById("day3").innerHTML =
-            `Day 3<br>₹${data.predictions.threeDay}`;
-
-        document.getElementById("weekly").innerHTML =
-            `Weekly<br>₹${data.predictions.weekly}`;
-
-        document.getElementById("levels").innerHTML =
-            `Support: ₹${data.support} | Resistance: ₹${data.resistance}`;
-
-        renderChart(data.price, data.predictions.hourly);
-
-    } catch (err) {
-        document.getElementById("priceBox").innerHTML = "⚠️ Data unavailable";
-        console.error(err);
-    }
+    renderChart(data);
 }
 
-function renderChart(price, forecast) {
+function renderChart(data) {
 
-    document.getElementById("chartTitle").innerText = getChartTitle();
+    const labels = [...data.timestamps, ...data.forecastSeries.map((_,i)=>"F+"+i)];
 
-    const phase = getMarketPhase();
+    const actualData = data.intraday;
 
-    const labels = [];
-    const actual = [];
-    const forecastArr = [];
-
-    if (phase === "FORECAST") {
-        for (let i = 0; i < 10; i++) {
-            labels.push("T+" + i);
-            actual.push(null);
-            forecastArr.push(price + i * 2);
-        }
-    } else {
-        for (let i = 0; i < 20; i++) {
-            labels.push(i);
-            actual.push(price + (Math.random() * 10 - 5));
-        }
-
-        for (let i = 0; i < 6; i++) {
-            labels.push("F+" + i);
-            forecastArr.push(forecast + i * 2);
-        }
-    }
+    const forecastData = new Array(actualData.length).fill(null).concat(data.forecastSeries);
 
     if (chart) chart.destroy();
 
@@ -175,13 +89,13 @@ function renderChart(price, forecast) {
             datasets: [
                 {
                     label: 'Actual',
-                    data: actual,
+                    data: actualData,
                     borderColor: 'cyan',
                     tension: 0.3
                 },
                 {
                     label: 'Forecast',
-                    data: forecastArr,
+                    data: forecastData,
                     borderColor: 'orange',
                     borderDash: [6,6],
                     tension: 0.3
@@ -193,7 +107,7 @@ function renderChart(price, forecast) {
                 legend: { labels: { color: 'white' } }
             },
             scales: {
-                x: { ticks: { color: 'white' } },
+                x: { ticks: { color: 'white', maxTicksLimit: 10 } },
                 y: { ticks: { color: 'white' } }
             }
         }
@@ -203,7 +117,7 @@ function renderChart(price, forecast) {
 document.getElementById("stock").addEventListener("change", loadData);
 
 loadData();
-setInterval(loadData, 5000);
+setInterval(loadData, 10000);
 
 </script>
 
