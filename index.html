@@ -1,20 +1,17 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-    <title>Trading Intelligence Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Trading Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-```
-<style>
+  <style>
     body { background:#061a2f; color:white; font-family:Arial; padding:20px; }
     .card { background:#0f2b4c; padding:20px; border-radius:10px; margin-bottom:20px; }
     .grid { display:flex; gap:15px; flex-wrap:wrap; }
     .box { flex:1; min-width:150px; background:#132f55; padding:15px; border-radius:8px; text-align:center; }
-    canvas { background:#0f2b4c; border-radius:10px; padding:10px; }
-</style>
-```
-
+    select { padding:6px; margin-bottom:10px; }
+    canvas { background:#0f2b4c; border-radius:10px; }
+  </style>
 </head>
 
 <body>
@@ -22,26 +19,34 @@
 <h1>📊 Trading Intelligence Dashboard</h1>
 
 <select id="stock">
-    <option value="ANANDRATHI.NS">Anand Rathi</option>
-    <option value="TCS.NS">TCS</option>
-    <option value="RELIANCE.NS">Reliance</option>
+  <option value="ANANDRATHI.NS">Anand Rathi</option>
+  <option value="TCS.NS">TCS</option>
+  <option value="RELIANCE.NS">Reliance</option>
 </select>
 
-<div class="card" id="priceBox"></div>
-<div class="card" id="signalBox"></div>
-
-<div class="card grid">
-    <div class="box" id="hourly"></div>
-    <div class="box" id="day1"></div>
-    <div class="box" id="day2"></div>
-    <div class="box" id="day3"></div>
-    <div class="box" id="weekly"></div>
+<div class="card">
+  <h2 id="price">--</h2>
 </div>
 
-<div class="card" id="levels"></div>
+<div class="card">
+  <b id="signal"></b>
+</div>
+
+<div class="card grid">
+  <div class="box">Next Hour<br><b id="hour"></b></div>
+  <div class="box">Day 1<br><b id="day1"></b></div>
+  <div class="box">Day 2<br><b id="day2"></b></div>
+  <div class="box">Day 3<br><b id="day3"></b></div>
+  <div class="box">Weekly<br><b id="week"></b></div>
+</div>
 
 <div class="card">
-    <canvas id="chart"></canvas>
+  Support: <span id="support"></span> |
+  Resistance: <span id="resistance"></span>
+</div>
+
+<div class="card">
+  <canvas id="chart"></canvas>
 </div>
 
 <script>
@@ -49,75 +54,75 @@
 let chart;
 
 async function loadData() {
-    const symbol = document.getElementById("stock").value;
+  const symbol = document.getElementById("stock").value;
 
-    const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
-    const data = await res.json();
+  const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
+  const data = await res.json();
 
-    document.getElementById("priceBox").innerHTML =
-        `₹${data.price}`;
+  console.log("API DATA:", data);
 
-    document.getElementById("signalBox").innerHTML =
-        `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
+  // PRICE
+  document.getElementById("price").innerText = "₹" + data.price;
 
-    document.getElementById("hourly").innerHTML = `Next Hour<br>₹${data.predictions.hourly}`;
-    document.getElementById("day1").innerHTML = `Day 1<br>₹${data.predictions.threeDay}`;
-    document.getElementById("day2").innerHTML = `Day 2<br>₹${data.predictions.threeDay}`;
-    document.getElementById("day3").innerHTML = `Day 3<br>₹${data.predictions.threeDay}`;
-    document.getElementById("weekly").innerHTML = `Weekly<br>₹${data.predictions.weekly}`;
+  // SIGNAL
+  document.getElementById("signal").innerText =
+    `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
 
-    document.getElementById("levels").innerHTML =
-        `Support: ₹${data.support} | Resistance: ₹${data.resistance}`;
+  // PREDICTIONS
+  document.getElementById("hour").innerText = "₹" + data.predictions.hourly;
+  document.getElementById("day1").innerText = "₹" + data.predictions.day1;
+  document.getElementById("day2").innerText = "₹" + data.predictions.day2;
+  document.getElementById("day3").innerText = "₹" + data.predictions.day3;
+  document.getElementById("week").innerText = "₹" + data.predictions.weekly;
 
-    renderChart(data);
-}
+  // SUPPORT/RESISTANCE
+  document.getElementById("support").innerText = "₹" + data.support;
+  document.getElementById("resistance").innerText = "₹" + data.resistance;
 
-function renderChart(data) {
+  // CHART
+  const forecast = data.predictions.hourlySeries;
 
-    const labels = [...data.timestamps, ...data.forecastSeries.map((_,i)=>"F+"+i)];
+  if (!forecast || forecast.length === 0) {
+    console.log("No forecast data");
+    return;
+  }
 
-    const actualData = data.intraday;
+  const labels = forecast.map((_, i) => "T+" + i);
 
-    const forecastData = new Array(actualData.length).fill(null).concat(data.forecastSeries);
+  if (chart) chart.destroy();
 
-    if (chart) chart.destroy();
+  const ctx = document.getElementById("chart").getContext("2d");
 
-    chart = new Chart(document.getElementById("chart"), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Actual',
-                    data: actualData,
-                    borderColor: 'cyan',
-                    tension: 0.3
-                },
-                {
-                    label: 'Forecast',
-                    data: forecastData,
-                    borderColor: 'orange',
-                    borderDash: [6,6],
-                    tension: 0.3
-                }
-            ]
-        },
-        options: {
-            plugins: {
-                legend: { labels: { color: 'white' } }
-            },
-            scales: {
-                x: { ticks: { color: 'white', maxTicksLimit: 10 } },
-                y: { ticks: { color: 'white' } }
-            }
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Forecast",
+          data: forecast,
+          borderColor: "orange",
+          borderDash: [5,5],
+          tension: 0.4
         }
-    });
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: "white" } }
+      },
+      scales: {
+        x: { ticks: { color: "white" } },
+        y: { ticks: { color: "white" } }
+      }
+    }
+  });
 }
 
 document.getElementById("stock").addEventListener("change", loadData);
 
 loadData();
-setInterval(loadData, 10000);
+setInterval(loadData, 5000);
 
 </script>
 
