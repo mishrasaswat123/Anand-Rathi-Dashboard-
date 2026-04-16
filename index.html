@@ -8,11 +8,40 @@
 ```
 <style>
     body { background:#061a2f; color:white; font-family:Arial; padding:20px; }
-    .card { background:#0f2b4c; padding:20px; border-radius:10px; margin-bottom:20px; }
-    .grid { display:flex; gap:15px; flex-wrap:wrap; }
-    .box { flex:1; min-width:150px; background:#132f55; padding:15px; border-radius:8px; text-align:center; }
-    select { padding:6px; margin-bottom:10px; }
-    canvas { background:#0f2b4c; border-radius:10px; }
+    h1 { margin-bottom:10px; }
+
+    .card {
+        background:#0f2b4c;
+        padding:20px;
+        border-radius:10px;
+        margin-bottom:20px;
+    }
+
+    .grid {
+        display:flex;
+        gap:15px;
+        flex-wrap:wrap;
+    }
+
+    .box {
+        flex:1;
+        min-width:150px;
+        background:#132f55;
+        padding:15px;
+        border-radius:8px;
+        text-align:center;
+    }
+
+    select {
+        padding:6px;
+        margin-bottom:10px;
+    }
+
+    canvas {
+        background:#0f2b4c;
+        border-radius:10px;
+        padding:10px;
+    }
 </style>
 ```
 
@@ -49,24 +78,21 @@
 
 <script>
 
-let chart;
+let chart = null;
 
 function getMarketPhase() {
     const now = new Date();
-    const hour = now.getHours();
-    const min = now.getMinutes();
+    const minutes = now.getHours() * 60 + now.getMinutes();
 
-    const current = hour * 60 + min;
-
-    if (current >= 555 && current <= 930) return "LIVE";        // 9:15–3:30
-    if (current > 930 && current < 990) return "POST";          // 3:30–4:30
-    return "FORECAST";                                          // after 4:30
+    if (minutes >= 555 && minutes <= 930) return "LIVE";     // 9:15–3:30
+    if (minutes > 930 && minutes < 990) return "POST";       // 3:30–4:30
+    return "FORECAST";
 }
 
 function getChartTitle() {
     const phase = getMarketPhase();
     const today = new Date().toLocaleDateString();
-    const tomorrow = new Date(Date.now()+86400000).toLocaleDateString();
+    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString();
 
     if (phase === "LIVE") return "Live Market Intraday - " + today;
     if (phase === "POST") return "Post Market - " + today;
@@ -76,6 +102,7 @@ function getChartTitle() {
 async function loadData() {
     try {
         const symbol = document.getElementById("stock").value;
+
         const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
         const data = await res.json();
 
@@ -85,47 +112,57 @@ async function loadData() {
         document.getElementById("signalBox").innerHTML =
             `Signal: ${data.signal}<br>Bias: ${data.bias}<br>Risk: ${data.risk}`;
 
-        document.getElementById("hourly").innerHTML = `Next Hour<br>₹${data.predictions.hourly}`;
-        document.getElementById("day1").innerHTML = `Day 1<br>₹${data.predictions.threeDay}`;
-        document.getElementById("day2").innerHTML = `Day 2<br>₹${data.predictions.threeDay}`;
-        document.getElementById("day3").innerHTML = `Day 3<br>₹${data.predictions.threeDay}`;
-        document.getElementById("weekly").innerHTML = `Weekly<br>₹${data.predictions.weekly}`;
+        document.getElementById("hourly").innerHTML =
+            `Next Hour<br>₹${data.predictions.hourly}`;
+
+        document.getElementById("day1").innerHTML =
+            `Day 1<br>₹${data.predictions.threeDay}`;
+
+        document.getElementById("day2").innerHTML =
+            `Day 2<br>₹${data.predictions.threeDay}`;
+
+        document.getElementById("day3").innerHTML =
+            `Day 3<br>₹${data.predictions.threeDay}`;
+
+        document.getElementById("weekly").innerHTML =
+            `Weekly<br>₹${data.predictions.weekly}`;
 
         document.getElementById("levels").innerHTML =
             `Support: ₹${data.support} | Resistance: ₹${data.resistance}`;
 
         renderChart(data.price, data.predictions.hourly);
 
-    } catch (e) {
-        document.getElementById("priceBox").innerHTML = "Data unavailable";
-        console.error(e);
+    } catch (err) {
+        document.getElementById("priceBox").innerHTML = "⚠️ Data unavailable";
+        console.error(err);
     }
 }
 
 function renderChart(price, forecast) {
 
-    const phase = getMarketPhase();
-
     document.getElementById("chartTitle").innerText = getChartTitle();
+
+    const phase = getMarketPhase();
 
     const labels = [];
     const actual = [];
     const forecastArr = [];
 
     if (phase === "FORECAST") {
-        for (let i=0;i<10;i++) {
-            labels.push("T+"+i);
+        for (let i = 0; i < 10; i++) {
+            labels.push("T+" + i);
             actual.push(null);
-            forecastArr.push(price + i*2);
+            forecastArr.push(price + i * 2);
         }
     } else {
-        for (let i=0;i<20;i++) {
+        for (let i = 0; i < 20; i++) {
             labels.push(i);
-            actual.push(price + Math.random()*10 - 5);
+            actual.push(price + (Math.random() * 10 - 5));
         }
-        for (let i=0;i<5;i++) {
-            labels.push("F"+i);
-            forecastArr.push(forecast + i*2);
+
+        for (let i = 0; i < 6; i++) {
+            labels.push("F+" + i);
+            forecastArr.push(forecast + i * 2);
         }
     }
 
@@ -134,20 +171,31 @@ function renderChart(price, forecast) {
     chart = new Chart(document.getElementById("chart"), {
         type: 'line',
         data: {
-            labels,
+            labels: labels,
             datasets: [
                 {
                     label: 'Actual',
                     data: actual,
-                    borderColor: 'cyan'
+                    borderColor: 'cyan',
+                    tension: 0.3
                 },
                 {
                     label: 'Forecast',
                     data: forecastArr,
                     borderColor: 'orange',
-                    borderDash: [5,5]
+                    borderDash: [6,6],
+                    tension: 0.3
                 }
             ]
+        },
+        options: {
+            plugins: {
+                legend: { labels: { color: 'white' } }
+            },
+            scales: {
+                x: { ticks: { color: 'white' } },
+                y: { ticks: { color: 'white' } }
+            }
         }
     });
 }
