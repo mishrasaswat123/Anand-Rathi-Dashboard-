@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trading Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { background:#061a2f; color:white; font-family:Arial; padding:20px; }
+    h1 { margin-bottom:5px; }
+
+    .card {
+      background:#0f2b4c;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+    }
+
+    .grid { display:flex; gap:15px; flex-wrap:wrap; }
+
+    .box {
+      flex:1;
+      min-width:150px;
+      background:#102f55;
+      padding:15px;
+      border-radius:8px;
+      text-align:center;
+      font-size:14px;
+    }
+
+    select { padding:8px; border-radius:6px; margin-bottom:20px; }
+
+    .signal { font-size:20px; font-weight:bold; }
+  </style>
+</head>
+
+<body>
+
+<h1>📊 Trading Intelligence Dashboard</h1>
+
+<select id="stock">
+  <option value="ANANDRATHI.NS">Anand Rathi</option>
+  <option value="RELIANCE.NS">Reliance</option>
+  <option value="TCS.NS">TCS</option>
+</select>
+
+<div class="card">
+  <h2 id="price">Loading...</h2>
+  <p id="market"></p>
+</div>
+
+<div class="card">
+  <div id="signal" class="signal"></div>
+  <p id="bias"></p>
+  <p id="risk"></p>
+</div>
+
+<div class="card">
+  <div class="grid">
+    <div class="box" id="hourly">--</div>
+    <div class="box" id="day1">--</div>
+    <div class="box" id="day2">--</div>
+    <div class="box" id="day3">--</div>
+    <div class="box" id="weekly">--</div>
+  </div>
+</div>
+
+<div class="card">
+  <p id="levels"></p>
+</div>
+
+<script>
+const API = "https://stock-api-cl5a.onrender.com";
+
+async function load() {
+  const symbol = document.getElementById("stock").value;
+
+  try {
+    const priceRes = await fetch(`${API}/api/price?symbol=${symbol}`);
+    const predRes = await fetch(`${API}/api/predict?symbol=${symbol}`);
+
+    const priceData = await priceRes.json();
+    const pred = await predRes.json();
+
+    if (!priceData.price || !pred.predictions) {
+      document.getElementById("price").innerText = "Data unavailable";
+      return;
+    }
+
+    const price = Number(priceData.price);
+    const threeDay = Number(pred.predictions.threeDay);
+
+    // ===== DERIVED DAY LOGIC =====
+    const day1 = price + (threeDay - price) * 0.33;
+    const day2 = price + (threeDay - price) * 0.66;
+    const day3 = threeDay;
+
+    // ===== UI =====
+    document.getElementById("price").innerText = "₹" + price.toFixed(2);
+
+    document.getElementById("signal").innerText = "Signal: " + pred.signal;
+    document.getElementById("bias").innerText = "Bias: " + pred.bias;
+    document.getElementById("risk").innerText = "Risk: " + pred.risk;
+
+    document.getElementById("hourly").innerText =
+      "Next Hour\n₹" + Number(pred.predictions.hourly).toFixed(2);
+
+    document.getElementById("day1").innerText =
+      "Day 1\n₹" + day1.toFixed(2);
+
+    document.getElementById("day2").innerText =
+      "Day 2\n₹" + day2.toFixed(2);
+
+    document.getElementById("day3").innerText =
+      "Day 3\n₹" + day3.toFixed(2);
+
+    document.getElementById("weekly").innerText =
+      "Weekly\n₹" + Number(pred.predictions.weekly).toFixed(2);
+
+    document.getElementById("levels").innerText =
+      `Support: ₹${pred.support} | Resistance: ₹${pred.resistance}`;
+
+  } catch (err) {
+    document.getElementById("price").innerText = "Error loading data";
+    console.error(err);
+  }
+}
+
+document.getElementById("stock").addEventListener("change", load);
+
+load();
+setInterval(load, 10000);
+</script>
+
+</body>
+</html>
