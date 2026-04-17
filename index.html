@@ -6,193 +6,192 @@
 
   <style>
     body {
-      background:#061a2f;
-      color:white;
-      font-family:Arial;
-      padding:20px;
+      background: #061a2f;
+      color: white;
+      font-family: Arial;
+      padding: 20px;
     }
 
-    h1 { margin-bottom:10px; }
+    h1 { margin-bottom: 5px; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .banner {
+      color: orange;
+      font-size: 14px;
+    }
 
     .card {
-      background:#0f2b4c;
-      padding:20px;
-      border-radius:10px;
-      margin-bottom:20px;
+      background: #0f2b4c;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 15px;
     }
 
     .grid {
-      display:flex;
-      gap:15px;
-      flex-wrap:wrap;
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
     }
 
     .box {
-      flex:1;
-      min-width:150px;
-      background:#132f55;
-      padding:15px;
-      border-radius:8px;
-      text-align:center;
-    }
-
-    select {
-      padding:8px;
-      border-radius:6px;
-      margin-bottom:15px;
+      flex: 1;
+      background: #173a63;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
     }
 
     canvas {
-      background:#0f2b4c;
-      border-radius:10px;
-      padding:10px;
-    }
-
-    /* scrolling banner */
-    #ticker {
-      overflow:hidden;
-      white-space:nowrap;
-      color:orange;
-      margin-bottom:10px;
-    }
-
-    #ticker span {
-      display:inline-block;
-      padding-left:100%;
-      animation:scroll 12s linear infinite;
-    }
-
-    @keyframes scroll {
-      from { transform:translateX(0); }
-      to { transform:translateX(-100%); }
-    }
-
-    #price {
-      font-size:28px;
-      font-weight:bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>📊 Trading Intelligence Dashboard</h1>
-
-<div id="ticker">
-  <span>⏳ Auto refresh every 30 seconds | Live market data</span>
+<div class="topbar">
+  <h1>📊 Trading Intelligence Dashboard</h1>
+  <div class="banner">⏳ Auto refresh every 30 seconds | BSE Data</div>
 </div>
 
-<select id="stock">
-  <option value="ANANDRATHI.NS">Anand Rathi</option>
-  <option value="TCS.NS">TCS</option>
-  <option value="RELIANCE.NS">Reliance</option>
+<h3 id="marketLabel"></h3>
+
+<select id="symbolSelect">
+  <option value="RELIANCE">Reliance</option>
+  <option value="TCS">TCS</option>
+  <option value="INFY">Infosys</option>
 </select>
 
 <div class="card">
-  <div id="price">Loading...</div>
+  <h2 id="price">Loading...</h2>
 </div>
 
 <div class="card">
-  <div id="signal"></div>
+  <b id="signal"></b>
 </div>
 
 <div class="card grid">
-  <div class="box">Next Hour<br><b id="hour"></b></div>
-  <div class="box">Day 1<br><b id="day1"></b></div>
-  <div class="box">Day 2<br><b id="day2"></b></div>
-  <div class="box">Day 3<br><b id="day3"></b></div>
-  <div class="box">Weekly<br><b id="week"></b></div>
+  <div class="box" id="hour"></div>
+  <div class="box" id="day1"></div>
+  <div class="box" id="day2"></div>
+  <div class="box" id="day3"></div>
+  <div class="box" id="week"></div>
 </div>
 
-<div class="card">
-  Support: <span id="support"></span> |
-  Resistance: <span id="resistance"></span>
-</div>
+<div class="card" id="support"></div>
 
 <div class="card">
   <canvas id="chart"></canvas>
 </div>
 
 <script>
+const API_URL = "https://stock-api-cl5a.onrender.com/api/predict";
+
 let chart;
 
-async function loadData() {
-  try {
-    const symbol = document.getElementById("stock").value;
+// 🧠 Market label logic
+function getMarketLabel() {
+  const now = new Date();
+  const hours = now.getHours();
 
-    const res = await fetch(`https://stock-api-cl5a.onrender.com/api/predict?symbol=${symbol}`);
+  if (hours >= 9 && hours < 15) return "📈 Intraday Market";
+  if (hours >= 15 && hours < 18) return "🌆 Post Market";
+  return "🌙 Next Day Forecast";
+}
+
+// 📊 Fetch + render
+async function loadData() {
+  const symbol = document.getElementById("symbolSelect").value;
+
+  try {
+    const res = await fetch(`${API_URL}?symbol=${symbol}`);
     const data = await res.json();
 
-    // price change
-    const change = data.price - data.previousClose;
-    const changePct = ((change / data.previousClose) * 100).toFixed(2);
+    if (data.error) throw new Error("API failed");
 
-    const priceEl = document.getElementById("price");
+    document.getElementById("price").innerHTML =
+      `₹${data.price} <br><small>${symbol} (BSE)</small>`;
 
-    priceEl.innerText =
-      `₹${data.price.toFixed(2)} (${change.toFixed(2)} | ${changePct}%)`;
-
-    priceEl.style.color = change >= 0 ? "lime" : "red";
-
-    // signal
     document.getElementById("signal").innerText =
       `Signal: ${data.signal} | Bias: ${data.bias} | Risk: ${data.risk}`;
 
-    // predictions
-    document.getElementById("hour").innerText = "₹" + data.predictions.hourly;
-    document.getElementById("day1").innerText = "₹" + data.predictions.day1;
-    document.getElementById("day2").innerText = "₹" + data.predictions.day2;
-    document.getElementById("day3").innerText = "₹" + data.predictions.day3;
-    document.getElementById("week").innerText = "₹" + data.predictions.weekly;
+    document.getElementById("hour").innerHTML =
+      `Next Hour<br>₹${data.predictions.hourly}`;
 
-    // levels
-    document.getElementById("support").innerText = "₹" + data.support;
-    document.getElementById("resistance").innerText = "₹" + data.resistance;
+    document.getElementById("day1").innerHTML =
+      `Day 1<br>₹${data.predictions.day1}`;
 
-    // chart
-    const forecast = data.predictions.hourlySeries || [];
-    const labels = forecast.map((_, i) => "T+" + i);
+    document.getElementById("day2").innerHTML =
+      `Day 2<br>₹${data.predictions.day2}`;
 
-    if (chart) chart.destroy();
+    document.getElementById("day3").innerHTML =
+      `Day 3<br>₹${data.predictions.day3}`;
 
-    chart = new Chart(document.getElementById("chart"), {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Forecast",
-          data: forecast,
-          borderColor: "orange",
-          borderDash: [5,5],
-          tension: 0.4
-        }]
-      },
-      options: {
-        animation: false,
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: "white" } }
-        },
-        scales: {
-          x: { ticks: { color: "white" } },
-          y: { ticks: { color: "white" } }
-        },
-        elements: {
-          point: { radius: 0 }
-        }
-      }
-    });
+    document.getElementById("week").innerHTML =
+      `Weekly<br>₹${data.predictions.weekly}`;
+
+    document.getElementById("support").innerText =
+      `Support: ₹${data.support} | Resistance: ₹${data.resistance}`;
+
+    document.getElementById("marketLabel").innerText =
+      getMarketLabel();
+
+    updateChart(data.predictions.hourlySeries);
 
   } catch (err) {
-    console.error(err);
     document.getElementById("price").innerText = "Error loading data";
   }
 }
 
-// reload
-document.getElementById("stock").addEventListener("change", loadData);
-loadData();
+// 📉 Chart (NO flicker)
+function updateChart(series) {
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  const labels = series.map((_, i) => `T+${i}`);
+
+  if (chart) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = series;
+    chart.update();
+    return;
+  }
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Forecast",
+        data: series,
+        borderColor: "orange",
+        borderDash: [5, 5],
+        tension: 0.4
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: "white" } }
+      },
+      scales: {
+        x: { ticks: { color: "white" } },
+        y: { ticks: { color: "white" } }
+      }
+    }
+  });
+}
+
+// 🔁 Auto refresh (stable)
 setInterval(loadData, 30000);
+
+document.getElementById("symbolSelect").addEventListener("change", loadData);
+
+// 🚀 Initial load
+loadData();
 </script>
 
 </body>
