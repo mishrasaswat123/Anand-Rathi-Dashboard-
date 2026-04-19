@@ -1,161 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Stock Forecast Dashboard</title>
+  <title>DSS Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b1b34;
-      color: white;
-      text-align: center;
-      padding: 40px;
-    }
-
-    h1 {
-      margin-bottom: 30px;
-    }
-
-    input {
-      padding: 10px;
-      width: 220px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-    }
-
-    button {
-      padding: 10px 20px;
-      background: #28a745;
-      border: none;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-left: 10px;
-      font-weight: bold;
-    }
-
-    button:hover {
-      background: #218838;
-    }
-
-    .card {
-      background: #1f2e4a;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 30px;
-      display: none;
-      text-align: left;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .card p {
-      margin: 8px 0;
-    }
-
-    canvas {
-      margin-top: 30px;
-      background: white;
-      border-radius: 10px;
-      padding: 10px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .error {
-      color: #ff4d4d;
-      margin-top: 20px;
-      white-space: pre-line;
-    }
-  </style>
 </head>
+<body style="font-family: Arial; padding: 20px;">
 
-<body>
+<h2>📊 Trading Intelligence Dashboard</h2>
 
-  <h1>📈 Stock Forecast Dashboard</h1>
+<input id="symbol" placeholder="Enter Stock (e.g. RELIANCE)">
+<button onclick="fetchData()">Analyze</button>
 
-  <input id="symbol" placeholder="Enter Stock (e.g. RELIANCE)">
-  <button onclick="getPrediction()">Predict</button>
+<h3 id="price"></h3>
+<h3 id="signal"></h3>
+<h3 id="score"></h3>
+<h3 id="prob"></h3>
+<h3 id="risk"></h3>
+<h3 id="alloc"></h3>
+<h4 id="source"></h4>
 
-  <div id="error" class="error"></div>
+<canvas id="chart" width="400" height="200"></canvas>
 
-  <div id="result" class="card">
-    <p><b>Price:</b> <span id="price"></span></p>
-    <p><b>Signal:</b> <span id="signal"></span></p>
-    <p><b>Bias:</b> <span id="bias"></span></p>
-    <p><b>Risk:</b> <span id="risk"></span></p>
-    <p><b>Support:</b> <span id="support"></span></p>
-    <p><b>Resistance:</b> <span id="resistance"></span></p>
-  </div>
+<script>
+async function fetchData() {
+  const symbol = document.getElementById("symbol").value;
 
-  <canvas id="chart" height="120"></canvas>
+  const res = await fetch(`https://13.61.104.101.nip.io/api/signal?symbol=${symbol}`);
+  const data = await res.json();
 
-  <script>
-    const API_URL = "https://13.61.104.101.nip.io/api/predict";
-    let chart;
+  document.getElementById("price").innerText = "Price: " + data.price;
+  document.getElementById("signal").innerText = "Signal: " + data.signal;
+  document.getElementById("score").innerText = "Score: " + data.score;
+  document.getElementById("prob").innerText =
+    `Prob ↑ ${data.probability.up}% | ↓ ${data.probability.down}%`;
+  document.getElementById("risk").innerText =
+    "Risk-Reward: " + data.riskReward;
+  document.getElementById("alloc").innerText =
+    "Allocation: " + data.allocation;
+  document.getElementById("source").innerText =
+    "Data Source: " + data.source;
 
-    async function getPrediction() {
-      const symbol = document.getElementById("symbol").value.trim();
-      const errorDiv = document.getElementById("error");
-      errorDiv.innerText = "";
-
-      if (!symbol) {
-        errorDiv.innerText = "Please enter a stock symbol";
-        return;
-      }
-
-      try {
-        const res = await fetch(API_URL + "?symbol=" + symbol);
-
-        if (!res.ok) {
-          throw new Error("API not reachable");
-        }
-
-        const data = await res.json();
-
-        document.getElementById("result").style.display = "block";
-
-        document.getElementById("price").innerText = data.price;
-        document.getElementById("signal").innerText = data.signal;
-        document.getElementById("bias").innerText = data.bias;
-        document.getElementById("risk").innerText = data.risk;
-        document.getElementById("support").innerText = data.support;
-        document.getElementById("resistance").innerText = data.resistance;
-
-        const ctx = document.getElementById("chart").getContext("2d");
-
-        if (chart) chart.destroy();
-
-        chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: data.predictions.hourlySeries.map((_, i) => i + 1),
-            datasets: [{
-              label: "Price Trend",
-              data: data.predictions.hourlySeries,
-              borderWidth: 2,
-              tension: 0.3
-            }]
-          }
-        });
-
-      } catch (err) {
-        console.error(err);
-
-        errorDiv.innerText =
-          "⚠️ Unable to fetch data.\n\n" +
-          "Possible reasons:\n" +
-          "1. EC2 port not open\n" +
-          "2. HTTP blocked by HTTPS\n" +
-          "3. Backend not reachable";
-      }
+  new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels: ["Now"],
+      datasets: [{
+        label: symbol,
+        data: [data.price]
+      }]
     }
-  </script>
+  });
+}
+</script>
 
 </body>
 </html>
