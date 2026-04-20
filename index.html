@@ -1,52 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DSS Dashboard</title>
+  <title>DSS Portfolio Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body style="font-family: Arial; padding: 20px;">
 
-<h2>📊 Trading Intelligence Dashboard</h2>
+<body style="font-family: Arial; padding: 20px; background:#0f172a; color:white;">
 
-<input id="symbol" placeholder="Enter Stock (e.g. RELIANCE)">
-<button onclick="fetchData()">Analyze</button>
+<h2>🚀 DSS Portfolio Intelligence</h2>
 
-<h3 id="price"></h3>
-<h3 id="signal"></h3>
-<h3 id="score"></h3>
-<h3 id="prob"></h3>
-<h3 id="risk"></h3>
-<h3 id="alloc"></h3>
-<h4 id="source"></h4>
+<button onclick="fetchPortfolio()" style="padding:10px; font-size:16px;">
+  Run Strategy
+</button>
 
-<canvas id="chart" width="400" height="200"></canvas>
+<h3 id="summary"></h3>
+
+<table border="1" cellpadding="10" style="margin-top:20px; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th>Stock</th>
+      <th>Allocation</th>
+      <th>Sharpe</th>
+      <th>Volatility</th>
+      <th>Win Rate</th>
+      <th>Drawdown</th>
+      <th>Confidence</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+
+<br>
+<canvas id="pieChart" width="400" height="200"></canvas>
 
 <script>
-async function fetchData() {
-  const symbol = document.getElementById("symbol").value;
-
-  const res = await fetch(`https://13.61.104.101.nip.io/api/signal?symbol=${symbol}`);
+async function fetchPortfolio() {
+  const res = await fetch("https://13.61.104.101.nip.io/api/portfolio");
   const data = await res.json();
 
-  document.getElementById("price").innerText = "Price: " + data.price;
-  document.getElementById("signal").innerText = "Signal: " + data.signal;
-  document.getElementById("score").innerText = "Score: " + data.score;
-  document.getElementById("prob").innerText =
-    `Prob ↑ ${data.probability.up}% | ↓ ${data.probability.down}%`;
-  document.getElementById("risk").innerText =
-    "Risk-Reward: " + data.riskReward;
-  document.getElementById("alloc").innerText =
-    "Allocation: " + data.allocation;
-  document.getElementById("source").innerText =
-    "Data Source: " + data.source;
+  document.getElementById("summary").innerText =
+    `Selected: ${data.totalSelected} | Universe: ${data.universeProcessed}`;
 
-  new Chart(document.getElementById("chart"), {
-    type: "line",
+  const tableBody = document.getElementById("tableBody");
+  tableBody.innerHTML = "";
+
+  const labels = [];
+  const allocations = [];
+
+  data.allocation.forEach(stock => {
+    const row = `
+      <tr>
+        <td>${stock.stock}</td>
+        <td>${stock.allocation}</td>
+        <td>${stock.sharpe}</td>
+        <td>${stock.volatility}</td>
+        <td>${stock.winRate}</td>
+        <td>${stock.drawdown}</td>
+        <td>${stock.confidence}</td>
+      </tr>
+    `;
+    tableBody.innerHTML += row;
+
+    labels.push(stock.stock);
+    allocations.push(parseFloat(stock.allocation));
+  });
+
+  new Chart(document.getElementById("pieChart"), {
+    type: "pie",
     data: {
-      labels: ["Now"],
+      labels: labels,
       datasets: [{
-        label: symbol,
-        data: [data.price]
+        data: allocations
       }]
     }
   });
