@@ -1,21 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>DSS Trading Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <title>DSS Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
+      background: #0f172a;
       color: white;
+      font-family: Arial;
       text-align: center;
-    }
-
-    h1 {
-      margin-top: 30px;
     }
 
     .card {
@@ -23,11 +16,10 @@
       margin: 15px;
       padding: 20px;
       border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
     }
 
     table {
-      width: 90%;
+      width: 95%;
       margin: 20px auto;
       border-collapse: collapse;
     }
@@ -40,18 +32,13 @@
     th {
       background: #334155;
     }
-
-    .status {
-      margin: 10px;
-      font-size: 16px;
-    }
   </style>
 </head>
 
 <body>
 
 <h1>📊 DSS Trading Dashboard</h1>
-<div class="status" id="status">Connecting...</div>
+<div id="status">Connecting...</div>
 
 <div class="card">
   <h2>Total PnL</h2>
@@ -74,8 +61,8 @@
     <tr>
       <th>Symbol</th>
       <th>Qty</th>
-      <th>Avg Price</th>
-      <th>Last Price</th>
+      <th>Avg</th>
+      <th>Last</th>
     </tr>
   </thead>
   <tbody id="positions"></tbody>
@@ -96,51 +83,69 @@
 </table>
 
 <script>
-const API = "https://13.61.104.101"; // ✅ IMPORTANT
+const API = "https://13.61.104.101";
 
 async function loadData() {
   try {
     const res = await fetch(API + "/portfolio");
     const data = await res.json();
 
+    console.log("DATA:", data);
+
+    // STATUS
     document.getElementById("status").innerHTML = "🟢 Connected";
 
+    // PnL
     document.getElementById("total").innerText =
-      data.realizedPnL + data.unrealizedPnL;
+      (data.realizedPnL || 0) + (data.unrealizedPnL || 0);
 
-    document.getElementById("realized").innerText = data.realizedPnL;
-    document.getElementById("unrealized").innerText = data.unrealizedPnL;
+    document.getElementById("realized").innerText = data.realizedPnL || 0;
+    document.getElementById("unrealized").innerText = data.unrealizedPnL || 0;
 
+    // POSITIONS
     const posTable = document.getElementById("positions");
     posTable.innerHTML = "";
 
-    Object.entries(data.positions).forEach(([symbol, p]) => {
-      posTable.innerHTML += `
-        <tr>
-          <td>${symbol}</td>
-          <td>${p.qty}</td>
-          <td>${p.avgPrice}</td>
-          <td>${p.lastPrice}</td>
-        </tr>`;
-    });
+    if (!data.positions || Object.keys(data.positions).length === 0) {
+      posTable.innerHTML = "<tr><td colspan='4'>No positions</td></tr>";
+    } else {
+      for (const symbol in data.positions) {
+        const p = data.positions[symbol];
 
+        const row = `
+          <tr>
+            <td>${symbol}</td>
+            <td>${p.qty}</td>
+            <td>${p.avgPrice}</td>
+            <td>${p.lastPrice}</td>
+          </tr>
+        `;
+
+        posTable.innerHTML += row;
+      }
+    }
+
+    // TRADES
     const tradeTable = document.getElementById("trades");
     tradeTable.innerHTML = "";
 
-    data.trades.slice().reverse().forEach(t => {
-      tradeTable.innerHTML += `
-        <tr>
-          <td>${new Date(t.time).toLocaleTimeString()}</td>
-          <td>${t.symbol}</td>
-          <td>${t.action}</td>
-          <td>${t.qty}</td>
-          <td>${t.price}</td>
-        </tr>`;
-    });
+    if (data.trades && data.trades.length > 0) {
+      data.trades.slice().reverse().forEach(t => {
+        tradeTable.innerHTML += `
+          <tr>
+            <td>${new Date(t.time).toLocaleTimeString()}</td>
+            <td>${t.symbol}</td>
+            <td>${t.action}</td>
+            <td>${t.qty}</td>
+            <td>${t.price}</td>
+          </tr>
+        `;
+      });
+    }
 
-  } catch (err) {
-    document.getElementById("status").innerHTML =
-      "🔴 Backend disconnected";
+  } catch (e) {
+    console.error(e);
+    document.getElementById("status").innerHTML = "🔴 Backend error";
   }
 }
 
