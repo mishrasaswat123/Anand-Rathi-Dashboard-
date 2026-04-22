@@ -1,156 +1,233 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>DSS Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      background: #0f172a;
-      color: white;
-      font-family: Arial;
-      text-align: center;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Advisor Intelligence Dashboard</title>
 
-    .card {
-      background: #1e293b;
-      margin: 15px;
-      padding: 20px;
-      border-radius: 15px;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+}
 
-    table {
-      width: 95%;
-      margin: 20px auto;
-      border-collapse: collapse;
-    }
+.container {
+  padding: 16px;
+}
 
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #334155;
-    }
+/* SECTION BASE */
+.section {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
 
-    th {
-      background: #334155;
-    }
-  </style>
+/* THEME STRIP */
+.theme-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.theme-card {
+  min-width: 140px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #334155;
+}
+
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.amber { color: #f59e0b; }
+
+/* RISK */
+.risk-high { color: #ef4444; font-weight: bold; }
+.risk-medium { color: #f59e0b; }
+.risk-low { color: #22c55e; }
+
+/* ACTION */
+.action-item {
+  margin-bottom: 8px;
+}
+
+/* BUTTON */
+button {
+  padding: 8px 12px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* HEADER */
+.header {
+  font-size: 20px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+</style>
 </head>
 
 <body>
 
-<h1>📊 DSS Trading Dashboard</h1>
-<div id="status">Connecting...</div>
+<div class="container">
 
-<div class="card">
-  <h2>Total PnL</h2>
-  <div id="total">0</div>
+  <!-- MARKET THEMES -->
+  <div class="section">
+    <div class="header">Market Themes</div>
+    <div id="themes" class="theme-strip"></div>
+  </div>
+
+  <!-- RISK RADAR -->
+  <div class="section">
+    <div class="header">Client Risk Radar</div>
+    <div id="risk"></div>
+  </div>
+
+  <!-- ACTION BOARD -->
+  <div class="section">
+    <div class="header">Advisor Actions</div>
+    <div id="actions"></div>
+  </div>
+
+  <!-- NARRATIVE -->
+  <div class="section">
+    <div class="header">Client Communication</div>
+    <div id="narrative"></div>
+    <br/>
+    <button onclick="copyText()">Copy Message</button>
+  </div>
+
+  <!-- CHANGES -->
+  <div class="section">
+    <div class="header">What Changed Today</div>
+    <div id="changes"></div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <div class="section">
+    <div class="header">Portfolio Snapshot</div>
+    <div id="portfolio"></div>
+  </div>
+
 </div>
-
-<div class="card">
-  <h2>Realized</h2>
-  <div id="realized">0</div>
-</div>
-
-<div class="card">
-  <h2>Unrealized</h2>
-  <div id="unrealized">0</div>
-</div>
-
-<h2>📦 Positions</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Symbol</th>
-      <th>Qty</th>
-      <th>Avg</th>
-      <th>Last</th>
-    </tr>
-  </thead>
-  <tbody id="positions"></tbody>
-</table>
-
-<h2>📜 Trades</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Time</th>
-      <th>Symbol</th>
-      <th>Action</th>
-      <th>Qty</th>
-      <th>Price</th>
-    </tr>
-  </thead>
-  <tbody id="trades"></tbody>
-</table>
 
 <script>
-const API = "https://13.61.104.101";
 
-async function loadData() {
+// ===== MOCK DATA (Fallback) =====
+const mockData = {
+  themes: [
+    { name: "Liquidity", direction: "↑ Strong", color: "green" },
+    { name: "Interest Rates", direction: "↑ Rising", color: "red" },
+    { name: "Crude", direction: "↑ Risk", color: "amber" },
+    { name: "INR", direction: "↓ Weak", color: "green" },
+    { name: "Market", direction: "↑ Bullish", color: "green" }
+  ],
+  risk: {
+    level: "HIGH",
+    reasons: [
+      "NBFC exposure high (20%)",
+      "Interest rates rising",
+      "Crude adding pressure"
+    ]
+  },
+  actions: [
+    "Reduce NBFC exposure by 5%",
+    "Increase PSU Bank allocation",
+    "Hold IT (INR benefit)"
+  ],
+  narrative: "Given rising interest rates and crude pressure, we recommend reducing NBFC exposure and increasing allocation to PSU banks.",
+  changes: [
+    "Crude moved → Risk",
+    "FII turned seller"
+  ],
+  portfolio: {
+    Banking: "30%",
+    NBFC: "20%",
+    IT: "15%"
+  }
+};
+
+
+// ===== RENDER FUNCTIONS =====
+
+function renderThemes(themes) {
+  const el = document.getElementById("themes");
+  el.innerHTML = "";
+  themes.forEach(t => {
+    el.innerHTML += `
+      <div class="theme-card">
+        <div>${t.name}</div>
+        <div class="${t.color}">${t.direction}</div>
+      </div>
+    `;
+  });
+}
+
+function renderRisk(risk) {
+  const el = document.getElementById("risk");
+  el.innerHTML = `
+    <div class="risk-high">Risk: ${risk.level}</div>
+    <ul>
+      ${risk.reasons.map(r => `<li>${r}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderActions(actions) {
+  const el = document.getElementById("actions");
+  el.innerHTML = actions.map(a => `<div class="action-item">✔ ${a}</div>`).join("");
+}
+
+function renderNarrative(text) {
+  document.getElementById("narrative").innerText = text;
+}
+
+function renderChanges(changes) {
+  document.getElementById("changes").innerHTML =
+    changes.map(c => `<div>- ${c}</div>`).join("");
+}
+
+function renderPortfolio(p) {
+  document.getElementById("portfolio").innerHTML =
+    Object.entries(p).map(([k,v]) => `<div>${k}: ${v}</div>`).join("");
+}
+
+function copyText() {
+  const text = document.getElementById("narrative").innerText;
+  navigator.clipboard.writeText(text);
+  alert("Copied!");
+}
+
+
+// ===== LOAD DATA =====
+
+async function loadDashboard() {
   try {
-    const res = await fetch(API + "/portfolio");
+    const res = await fetch("http://YOUR_EC2_IP:4000/dashboard");
     const data = await res.json();
-
-    console.log("DATA:", data);
-
-    // STATUS
-    document.getElementById("status").innerHTML = "🟢 Connected";
-
-    // PnL
-    document.getElementById("total").innerText =
-      (data.realizedPnL || 0) + (data.unrealizedPnL || 0);
-
-    document.getElementById("realized").innerText = data.realizedPnL || 0;
-    document.getElementById("unrealized").innerText = data.unrealizedPnL || 0;
-
-    // POSITIONS
-    const posTable = document.getElementById("positions");
-    posTable.innerHTML = "";
-
-    if (!data.positions || Object.keys(data.positions).length === 0) {
-      posTable.innerHTML = "<tr><td colspan='4'>No positions</td></tr>";
-    } else {
-      for (const symbol in data.positions) {
-        const p = data.positions[symbol];
-
-        const row = `
-          <tr>
-            <td>${symbol}</td>
-            <td>${p.qty}</td>
-            <td>${p.avgPrice}</td>
-            <td>${p.lastPrice}</td>
-          </tr>
-        `;
-
-        posTable.innerHTML += row;
-      }
-    }
-
-    // TRADES
-    const tradeTable = document.getElementById("trades");
-    tradeTable.innerHTML = "";
-
-    if (data.trades && data.trades.length > 0) {
-      data.trades.slice().reverse().forEach(t => {
-        tradeTable.innerHTML += `
-          <tr>
-            <td>${new Date(t.time).toLocaleTimeString()}</td>
-            <td>${t.symbol}</td>
-            <td>${t.action}</td>
-            <td>${t.qty}</td>
-            <td>${t.price}</td>
-          </tr>
-        `;
-      });
-    }
-
+    renderAll(data);
   } catch (e) {
-    console.error(e);
-    document.getElementById("status").innerHTML = "🔴 Backend error";
+    console.log("Using mock data");
+    renderAll(mockData);
   }
 }
 
-setInterval(loadData, 2000);
-loadData();
+function renderAll(data) {
+  renderThemes(data.themes);
+  renderRisk(data.risk);
+  renderActions(data.actions);
+  renderNarrative(data.narrative);
+  renderChanges(data.changes);
+  renderPortfolio(data.portfolio);
+}
+
+loadDashboard();
+
 </script>
 
 </body>
