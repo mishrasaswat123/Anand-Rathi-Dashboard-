@@ -1,188 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title>DSS Trading Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
     body {
+      font-family: Arial;
+      background: #0b1a2f;
+      color: white;
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
       padding: 20px;
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 30px;
     }
 
     .cards {
       display: flex;
-      gap: 20px;
+      gap: 15px;
       justify-content: center;
-      margin-bottom: 30px;
       flex-wrap: wrap;
+      margin: 20px 0;
     }
 
     .card {
-      background: #1e293b;
+      background: #1e2a3a;
       padding: 20px;
-      border-radius: 12px;
-      width: 200px;
+      border-radius: 10px;
       text-align: center;
-    }
-
-    .card h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .card p {
-      font-size: 24px;
-      margin-top: 10px;
+      width: 150px;
     }
 
     table {
       width: 100%;
+      margin-top: 20px;
       border-collapse: collapse;
-      margin-top: 10px;
-      margin-bottom: 30px;
     }
 
     th, td {
       padding: 10px;
+      border-bottom: 1px solid #333;
       text-align: center;
-      border-bottom: 1px solid #334155;
     }
 
     th {
-      background: #334155;
+      background: #2c3e50;
     }
 
     .error {
-      text-align: center;
       color: red;
-      margin-top: 10px;
+      text-align: center;
+      margin-top: 20px;
     }
   </style>
 </head>
+
 <body>
 
-  <h1>📊 DSS Trading Dashboard</h1>
+<h1>📊 DSS Trading Dashboard</h1>
 
-  <div class="cards">
-    <div class="card">
-      <h2>Total PnL</h2>
-      <p id="totalPnl">0</p>
-    </div>
-    <div class="card">
-      <h2>Realized PnL</h2>
-      <p id="realizedPnl">0</p>
-    </div>
-    <div class="card">
-      <h2>Unrealized PnL</h2>
-      <p id="unrealizedPnl">0</p>
-    </div>
+<div class="cards">
+  <div class="card">
+    <h3>Total PnL</h3>
+    <p id="total">0</p>
   </div>
+  <div class="card">
+    <h3>Realized</h3>
+    <p id="realized">0</p>
+  </div>
+  <div class="card">
+    <h3>Unrealized</h3>
+    <p id="unrealized">0</p>
+  </div>
+</div>
 
-  <h2>📦 Positions</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Symbol</th>
-        <th>Qty</th>
-        <th>Avg Price</th>
-        <th>Last Price</th>
-        <th>PnL</th>
-      </tr>
-    </thead>
-    <tbody id="positions"></tbody>
-  </table>
+<h2>📦 Positions</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Symbol</th>
+      <th>Qty</th>
+      <th>Avg Price</th>
+      <th>Last Price</th>
+      <th>PnL</th>
+    </tr>
+  </thead>
+  <tbody id="positions"></tbody>
+</table>
 
-  <h2>📜 Trade History</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Symbol</th>
-        <th>Action</th>
-        <th>Qty</th>
-        <th>Price</th>
-        <th>PnL</th>
-      </tr>
-    </thead>
-    <tbody id="trades"></tbody>
-  </table>
+<h2>📜 Trade History</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>Symbol</th>
+      <th>Action</th>
+      <th>Qty</th>
+      <th>Price</th>
+    </tr>
+  </thead>
+  <tbody id="trades"></tbody>
+</table>
 
-  <div id="error" class="error"></div>
+<div id="error" class="error"></div>
 
-  <script>
-    const API_URL = "http://13.61.104.101:4000";
+<script>
+  // 🔥 HTTPS READY (will work AFTER nginx SSL setup)
+  const API_URL = "https://13.61.104.101";
 
-    async function loadData() {
-      try {
-        document.getElementById("error").innerText = "";
+  async function loadData() {
+    try {
+      const res = await fetch(API_URL + "/portfolio");
+      const data = await res.json();
 
-        const res = await fetch(`${API_URL}/portfolio`);
-        const data = await res.json();
+      document.getElementById("realized").innerText = data.realizedPnL;
+      document.getElementById("unrealized").innerText = data.unrealizedPnL;
+      document.getElementById("total").innerText =
+        data.realizedPnL + data.unrealizedPnL;
 
-        // PnL
-        const realized = data.realizedPnl || 0;
-        const unrealized = data.unrealizedPnl || 0;
-        const total = realized + unrealized;
+      // Positions
+      const posTable = document.getElementById("positions");
+      posTable.innerHTML = "";
 
-        document.getElementById("realizedPnl").innerText = realized.toFixed(2);
-        document.getElementById("unrealizedPnl").innerText = unrealized.toFixed(2);
-        document.getElementById("totalPnl").innerText = total.toFixed(2);
+      for (let sym in data.positions) {
+        let p = data.positions[sym];
+        let pnl = (p.lastPrice - p.avgPrice) * p.qty;
 
-        // Positions
-        const positionsEl = document.getElementById("positions");
-        positionsEl.innerHTML = "";
-
-        for (let symbol in data.positions || {}) {
-          const p = data.positions[symbol];
-
-          positionsEl.innerHTML += `
-            <tr>
-              <td>${symbol}</td>
-              <td>${p.qty}</td>
-              <td>${p.avgPrice}</td>
-              <td>${p.lastPrice}</td>
-              <td>${p.pnl}</td>
-            </tr>
-          `;
-        }
-
-        // Trades
-        const tradesEl = document.getElementById("trades");
-        tradesEl.innerHTML = "";
-
-        (data.trades || []).slice().reverse().forEach(t => {
-          tradesEl.innerHTML += `
-            <tr>
-              <td>${new Date(t.timestamp).toLocaleTimeString()}</td>
-              <td>${t.symbol}</td>
-              <td>${t.action}</td>
-              <td>${t.qty}</td>
-              <td>${t.price}</td>
-              <td>${t.pnl || 0}</td>
-            </tr>
-          `;
-        });
-
-      } catch (err) {
-        document.getElementById("error").innerText =
-          "❌ Cannot connect to backend (CORS / API down)";
+        posTable.innerHTML += `
+          <tr>
+            <td>${sym}</td>
+            <td>${p.qty}</td>
+            <td>${p.avgPrice.toFixed(2)}</td>
+            <td>${p.lastPrice}</td>
+            <td>${pnl.toFixed(2)}</td>
+          </tr>
+        `;
       }
-    }
 
-    // Auto refresh every 2 sec
-    setInterval(loadData, 2000);
-    loadData();
-  </script>
+      // Trades
+      const tradeTable = document.getElementById("trades");
+      tradeTable.innerHTML = "";
+
+      data.trades.slice().reverse().forEach(t => {
+        tradeTable.innerHTML += `
+          <tr>
+            <td>${t.time}</td>
+            <td>${t.symbol}</td>
+            <td>${t.action}</td>
+            <td>${t.qty}</td>
+            <td>${t.price}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("error").innerText = "";
+
+    } catch (e) {
+      document.getElementById("error").innerText =
+        "❌ Cannot connect to backend (HTTPS not configured yet)";
+    }
+  }
+
+  loadData();
+  setInterval(loadData, 3000);
+</script>
 
 </body>
 </html>
