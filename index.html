@@ -1,205 +1,188 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>DSS Trading Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>DSS Trading Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #0f172a;
-            color: #e2e8f0;
-            margin: 0;
-            padding: 20px;
-        }
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 20px;
+    }
 
-        h1 {
-            text-align: center;
-        }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        .cards {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+    .cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
 
-        .card {
-            flex: 1;
-            padding: 20px;
-            border-radius: 10px;
-            background: #1e293b;
-            text-align: center;
-        }
+    .card {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      width: 200px;
+      text-align: center;
+    }
 
-        .green { color: #22c55e; }
-        .red { color: #ef4444; }
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: #1e293b;
-        }
+    .card p {
+      font-size: 24px;
+      margin-top: 10px;
+    }
 
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #334155;
-            text-align: center;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 30px;
+    }
 
-        th {
-            background: #334155;
-        }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #334155;
+    }
 
-        .section {
-            margin-top: 30px;
-        }
-    </style>
+    th {
+      background: #334155;
+    }
+
+    .error {
+      text-align: center;
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>📊 DSS Trading Dashboard</h1>
+  <h1>📊 DSS Trading Dashboard</h1>
 
-<div class="cards">
+  <div class="cards">
     <div class="card">
-        <h3>Total PnL</h3>
-        <h2 id="totalPnL">0</h2>
+      <h2>Total PnL</h2>
+      <p id="totalPnl">0</p>
     </div>
     <div class="card">
-        <h3>Realized PnL</h3>
-        <h2 id="realizedPnL">0</h2>
+      <h2>Realized PnL</h2>
+      <p id="realizedPnl">0</p>
     </div>
     <div class="card">
-        <h3>Unrealized PnL</h3>
-        <h2 id="unrealizedPnL">0</h2>
+      <h2>Unrealized PnL</h2>
+      <p id="unrealizedPnl">0</p>
     </div>
-</div>
+  </div>
 
-<div class="section">
-    <h2>📦 Positions</h2>
-    <table id="positionsTable">
-        <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Qty</th>
-                <th>Avg Price</th>
-                <th>Last Price</th>
-                <th>PnL</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
+  <h2>📦 Positions</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Qty</th>
+        <th>Avg Price</th>
+        <th>Last Price</th>
+        <th>PnL</th>
+      </tr>
+    </thead>
+    <tbody id="positions"></tbody>
+  </table>
 
-<div class="section">
-    <h2>📜 Trade History</h2>
-    <table id="tradesTable">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Symbol</th>
-                <th>Action</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>PnL</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
+  <h2>📜 Trade History</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Symbol</th>
+        <th>Action</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>PnL</th>
+      </tr>
+    </thead>
+    <tbody id="trades"></tbody>
+  </table>
 
-<script>
-const API_BASE = "http://13.61.104.101:4000";
+  <div id="error" class="error"></div>
 
-function formatTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleTimeString();
-}
+  <script>
+    const API_URL = "http://13.61.104.101:4000";
 
-function setColor(el, value) {
-    el.classList.remove('green', 'red');
-    el.classList.add(value >= 0 ? 'green' : 'red');
-}
+    async function loadData() {
+      try {
+        document.getElementById("error").innerText = "";
 
-async function loadPortfolio() {
-    try {
-        const res = await fetch(API_BASE + '/portfolio');
+        const res = await fetch(`${API_URL}/portfolio`);
         const data = await res.json();
 
-        // PnL Cards
-        document.getElementById('totalPnL').innerText = data.totalPnL.toFixed(2);
-        document.getElementById('realizedPnL').innerText = data.realizedPnL.toFixed(2);
-        document.getElementById('unrealizedPnL').innerText = data.unrealizedPnL.toFixed(2);
+        // PnL
+        const realized = data.realizedPnl || 0;
+        const unrealized = data.unrealizedPnl || 0;
+        const total = realized + unrealized;
 
-        setColor(document.getElementById('totalPnL'), data.totalPnL);
-        setColor(document.getElementById('realizedPnL'), data.realizedPnL);
-        setColor(document.getElementById('unrealizedPnL'), data.unrealizedPnL);
+        document.getElementById("realizedPnl").innerText = realized.toFixed(2);
+        document.getElementById("unrealizedPnl").innerText = unrealized.toFixed(2);
+        document.getElementById("totalPnl").innerText = total.toFixed(2);
 
-        // Positions Table
-        const tbody = document.querySelector('#positionsTable tbody');
-        tbody.innerHTML = '';
+        // Positions
+        const positionsEl = document.getElementById("positions");
+        positionsEl.innerHTML = "";
 
-        for (let symbol in data.positions) {
-            const p = data.positions[symbol];
+        for (let symbol in data.positions || {}) {
+          const p = data.positions[symbol];
 
-            const row = `
-                <tr>
-                    <td>${symbol}</td>
-                    <td>${p.qty}</td>
-                    <td>${p.avgPrice.toFixed(2)}</td>
-                    <td>${p.lastPrice.toFixed(2)}</td>
-                    <td class="${p.pnl >= 0 ? 'green' : 'red'}">${p.pnl.toFixed(2)}</td>
-                </tr>
-            `;
-
-            tbody.innerHTML += row;
+          positionsEl.innerHTML += `
+            <tr>
+              <td>${symbol}</td>
+              <td>${p.qty}</td>
+              <td>${p.avgPrice}</td>
+              <td>${p.lastPrice}</td>
+              <td>${p.pnl}</td>
+            </tr>
+          `;
         }
 
-    } catch (err) {
-        console.error('Portfolio error', err);
-    }
-}
+        // Trades
+        const tradesEl = document.getElementById("trades");
+        tradesEl.innerHTML = "";
 
-async function loadTrades() {
-    try {
-        const res = await fetch(API_BASE + '/trades');
-        const data = await res.json();
-
-        const tbody = document.querySelector('#tradesTable tbody');
-        tbody.innerHTML = '';
-
-        data.slice().reverse().forEach(t => {
-            const row = `
-                <tr>
-                    <td>${formatTime(t.timestamp)}</td>
-                    <td>${t.symbol}</td>
-                    <td>${t.action}</td>
-                    <td>${t.qty}</td>
-                    <td>${t.price}</td>
-                    <td class="${t.pnl >= 0 ? 'green' : 'red'}">${t.pnl ? t.pnl.toFixed(2) : '-'}</td>
-                </tr>
-            `;
-
-            tbody.innerHTML += row;
+        (data.trades || []).slice().reverse().forEach(t => {
+          tradesEl.innerHTML += `
+            <tr>
+              <td>${new Date(t.timestamp).toLocaleTimeString()}</td>
+              <td>${t.symbol}</td>
+              <td>${t.action}</td>
+              <td>${t.qty}</td>
+              <td>${t.price}</td>
+              <td>${t.pnl || 0}</td>
+            </tr>
+          `;
         });
 
-    } catch (err) {
-        console.error('Trades error', err);
+      } catch (err) {
+        document.getElementById("error").innerText =
+          "❌ Cannot connect to backend (CORS / API down)";
+      }
     }
-}
 
-function refresh() {
-    loadPortfolio();
-    loadTrades();
-}
-
-// Auto refresh every 3 seconds
-setInterval(refresh, 3000);
-
-// Initial load
-refresh();
-</script>
+    // Auto refresh every 2 sec
+    setInterval(loadData, 2000);
+    loadData();
+  </script>
 
 </body>
 </html>
