@@ -28,9 +28,19 @@
     .card {
       background: #1e2a3a;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 12px;
       text-align: center;
       width: 150px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      font-size: 20px;
+      font-weight: bold;
     }
 
     table {
@@ -53,6 +63,7 @@
       color: red;
       text-align: center;
       margin-top: 20px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -107,7 +118,6 @@
 <div id="error" class="error"></div>
 
 <script>
-  // 🔥 HTTPS READY (will work AFTER nginx SSL setup)
   const API_URL = "https://13.61.104.101";
 
   async function loadData() {
@@ -157,9 +167,9 @@
 
       document.getElementById("error").innerText = "";
 
-    } catch (e) {
+    } catch (err) {
       document.getElementById("error").innerText =
-        "❌ Cannot connect to backend (HTTPS not configured yet)";
+        "❌ First open https://13.61.104.101/portfolio and accept certificate";
     }
   }
 
