@@ -1,147 +1,132 @@
 <!DOCTYPE html><html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Advisor Brain Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #0f172a;
-      color: #e2e8f0;
+      color: white;
     }
 
     .container {
-      max-width: 500px;
-      margin: auto;
       padding: 16px;
     }
 
     .card {
       background: #1e293b;
-      border-radius: 16px;
       padding: 16px;
+      border-radius: 12px;
       margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     h2 {
-      margin: 0 0 10px;
-      font-size: 18px;
+      margin-top: 0;
     }
 
     .highlight {
       background: #22c55e;
-      color: #022c22;
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 6px 10px;
+      padding: 12px;
       border-radius: 8px;
-      margin-right: 6px;
-      font-size: 12px;
-    }
-
-    .green { background: #16a34a; }
-    .red { background: #dc2626; }
-    .yellow { background: #ca8a04; }
-
-    .risk-high {
-      color: #f87171;
+      margin-bottom: 10px;
       font-weight: bold;
     }
 
-    .btn {
+    .risk {
+      color: #ef4444;
+      font-weight: bold;
+    }
+
+    button {
       background: #3b82f6;
       border: none;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 8px;
       color: white;
       width: 100%;
       margin-top: 10px;
-      font-size: 14px;
+      cursor: pointer;
     }
-
-    ul {
-      padding-left: 18px;
-      margin: 0;
-    }
-
-    .meter {
-      height: 8px;
-      background: #334155;
-      border-radius: 6px;
-      margin-top: 6px;
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 80%;
-      background: #22c55e;
-      border-radius: 6px;
-    }
-  </style></head><body><div class="container">  <!-- 🔥 TODAY'S CALL -->  <div class="card">
-    <h2>📢 TODAY'S CALL</h2><div class="highlight">Reduce NBFC exposure</div>
-<div class="highlight">Increase PSU Bank allocation</div>
-
-<p><b>Horizon:</b> 3–6 Months</p>
-
-<p><b>Confidence:</b></p>
-<div class="meter">
-  <div class="meter-fill"></div>
-</div>
-
-  </div>  <!-- 🧠 WHY -->  <div class="card">
+  </style></head><body>
+<div class="container">  <div class="card">
+    <h2>📢 TODAY'S CALL</h2>
+    <div id="call"></div>
+    <p><b>Horizon:</b> <span id="horizon"></span></p>
+    <p><b>Confidence:</b> <span id="confidence"></span></p>
+  </div>  <div class="card">
     <h2>🧠 Why this call?</h2>
-    <ul>
-      <li>RBI liquidity supportive</li>
-      <li>Interest rates rising</li>
-      <li>Crude adding inflation pressure</li>
-      <li>FII selling trend</li>
-    </ul>
-  </div>  <!-- 🔗 IMPACT -->  <div class="card">
+    <ul id="reasons"></ul>
+  </div>  <div class="card">
     <h2>🔗 Impact Chain</h2>
-    <ul>
-      <li>Rates ↑ → NBFC ↓ → Risk ↑</li>
-      <li>Rates ↑ → PSU Banks ↑ → Opportunity</li>
-    </ul>
-  </div>  <!-- ⚠️ RISK -->  <div class="card">
-    <h2>⚠️ Client Risk</h2>
-    <p class="risk-high">HIGH RISK</p>
-    <ul>
-      <li>NBFC exposure: 20%</li>
-      <li>Rates rising environment</li>
-      <li>Crude pressure</li>
-    </ul>
-  </div>  <!-- ✅ ACTIONS -->  <div class="card">
-    <h2>✅ What should I do?</h2>
-    <ul>
-      <li>Reduce NBFC by 5–10%</li>
-      <li>Add PSU Banks (SBI, PNB)</li>
-      <li>Hold IT (currency benefit)</li>
-    </ul>
-  </div>  <!-- 📩 CLIENT MESSAGE -->  <div class="card">
-    <h2>📩 Client Message</h2><p id="msg">
-  We are reducing NBFC exposure due to rising interest rates and increasing PSU bank allocation for better positioning.
-</p>
-
-<button class="btn" onclick="copyMsg()">Copy Message</button>
-
-  </div>  <!-- ⚡ WHAT CHANGED -->  <div class="card">
-    <h2>⚡ What changed today</h2>
-    <ul>
-      <li>Crude ↑</li>
-      <li>FII selling</li>
-    </ul>
+    <ul id="impact"></ul>
+  </div>  <div class="card">
+    <h2>⚠️ Risk</h2>
+    <ul id="risk"></ul>
+  </div>  <div class="card">
+    <h2>📩 Client Message</h2>
+    <p id="message"></p>
+    <button onclick="copyMessage()">Copy Message</button>
   </div></div><script>
-  function copyMsg() {
-    const text = document.getElementById("msg").innerText;
-    navigator.clipboard.writeText(text);
-    alert("Message copied!");
+
+const API = "http://YOUR-EC2-IP:5000/brain"; // 🔴 CHANGE THIS
+
+async function loadData() {
+  const res = await fetch(API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      liquidity: "STRONG",
+      rates: "RISING",
+      crude: "RISING",
+      fii: "SELLING"
+    })
+  });
+
+  const data = await res.json();
+
+  // CALL
+  const callDiv = document.getElementById("call");
+  callDiv.innerHTML = "";
+  data.call.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "highlight";
+    div.innerText = c;
+    callDiv.appendChild(div);
+  });
+
+  // BASIC
+  document.getElementById("horizon").innerText = data.horizon;
+  document.getElementById("confidence").innerText = data.confidence;
+
+  // LIST HELPERS
+  function fillList(id, arr) {
+    const el = document.getElementById(id);
+    el.innerHTML = "";
+    arr.forEach(item => {
+      const li = document.createElement("li");
+      li.innerText = item;
+      el.appendChild(li);
+    });
   }
+
+  fillList("reasons", data.reasons);
+  fillList("impact", data.impact);
+  fillList("risk", data.risk);
+
+  document.getElementById("message").innerText = data.message;
+}
+
+function copyMessage() {
+  const text = document.getElementById("message").innerText;
+  navigator.clipboard.writeText(text);
+  alert("Copied!");
+}
+
+loadData();
+
 </script></body>
 </html>
