@@ -1,87 +1,147 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body { background:#0b1b2b; color:white; font-family:Arial; margin:0; }
-.container { padding:15px; }
-.card { background:#16283c; padding:15px; margin-bottom:15px; border-radius:12px; }
-.tag { padding:6px 10px; border-radius:8px; display:inline-block; margin:5px; }
-.green { background:#1e7e34; }
-.red { background:#a71d2a; }
-.high { color:red; font-weight:bold; }
-button { padding:10px; border:none; background:#3b82f6; color:white; border-radius:8px; }
-</style>
-</head>
+  <meta charset="UTF-8">
+  <title>Advisor Brain Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
 
-<body>
-<div class="container">
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 16px;
+    }
 
-<div class="card">
-<h3>Market Themes</h3>
-<div class="tag green">Liquidity ↑ Strong</div>
-<div class="tag red">Rates ↑ Rising</div>
-</div>
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
 
-<div class="card">
-<h3>Why this view?</h3>
-<ul>
-<li>RBI liquidity supportive</li>
-<li>Crude rising → inflation risk</li>
-<li>FII selling pressure</li>
-</ul>
-</div>
+    h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
 
-<div class="card">
-<h3>Impact Chain</h3>
-<p>Rates ↑ → NBFC ↓ → Reduce exposure</p>
-<p>Rates ↑ → PSU Banks ↑ → Increase allocation</p>
-</div>
+    .highlight {
+      background: #22c55e;
+      color: #022c22;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
 
-<div class="card">
-<h3>Client Risk Radar</h3>
-<div class="high">Risk: HIGH</div>
-<ul>
-<li>NBFC exposure high</li>
-<li>Rates rising</li>
-<li>Crude pressure</li>
-</ul>
-</div>
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin-right: 6px;
+      font-size: 12px;
+    }
 
-<div class="card">
-<h3>Advisor Actions</h3>
-<ul>
-<li>✔ Reduce NBFC exposure</li>
-<li>✔ Increase PSU Banks</li>
-<li>✔ Hold IT</li>
-</ul>
+    .green { background: #16a34a; }
+    .red { background: #dc2626; }
+    .yellow { background: #ca8a04; }
 
-<p><b>Conviction:</b> HIGH</p>
+    .risk-high {
+      color: #f87171;
+      font-weight: bold;
+    }
+
+    .btn {
+      background: #3b82f6;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      color: white;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+
+    .meter {
+      height: 8px;
+      background: #334155;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 80%;
+      background: #22c55e;
+      border-radius: 6px;
+    }
+  </style></head><body><div class="container">  <!-- 🔥 TODAY'S CALL -->  <div class="card">
+    <h2>📢 TODAY'S CALL</h2><div class="highlight">Reduce NBFC exposure</div>
+<div class="highlight">Increase PSU Bank allocation</div>
+
 <p><b>Horizon:</b> 3–6 Months</p>
+
+<p><b>Confidence:</b></p>
+<div class="meter">
+  <div class="meter-fill"></div>
 </div>
 
-<div class="card">
-<h3>Client Communication</h3>
-<p id="msg">Reduce NBFC exposure and increase PSU Banks due to rising rates.</p>
-<button onclick="copyMsg()">Copy Message</button>
-</div>
+  </div>  <!-- 🧠 WHY -->  <div class="card">
+    <h2>🧠 Why this call?</h2>
+    <ul>
+      <li>RBI liquidity supportive</li>
+      <li>Interest rates rising</li>
+      <li>Crude adding inflation pressure</li>
+      <li>FII selling trend</li>
+    </ul>
+  </div>  <!-- 🔗 IMPACT -->  <div class="card">
+    <h2>🔗 Impact Chain</h2>
+    <ul>
+      <li>Rates ↑ → NBFC ↓ → Risk ↑</li>
+      <li>Rates ↑ → PSU Banks ↑ → Opportunity</li>
+    </ul>
+  </div>  <!-- ⚠️ RISK -->  <div class="card">
+    <h2>⚠️ Client Risk</h2>
+    <p class="risk-high">HIGH RISK</p>
+    <ul>
+      <li>NBFC exposure: 20%</li>
+      <li>Rates rising environment</li>
+      <li>Crude pressure</li>
+    </ul>
+  </div>  <!-- ✅ ACTIONS -->  <div class="card">
+    <h2>✅ What should I do?</h2>
+    <ul>
+      <li>Reduce NBFC by 5–10%</li>
+      <li>Add PSU Banks (SBI, PNB)</li>
+      <li>Hold IT (currency benefit)</li>
+    </ul>
+  </div>  <!-- 📩 CLIENT MESSAGE -->  <div class="card">
+    <h2>📩 Client Message</h2><p id="msg">
+  We are reducing NBFC exposure due to rising interest rates and increasing PSU bank allocation for better positioning.
+</p>
 
-<div class="card">
-<h3>What Changed Today</h3>
-<ul>
-<li>Crude ↑</li>
-<li>FII selling</li>
-</ul>
-</div>
+<button class="btn" onclick="copyMsg()">Copy Message</button>
 
-</div>
-
-<script>
-function copyMsg(){
-navigator.clipboard.writeText(document.getElementById("msg").innerText);
-alert("Copied");
-}
-</script>
-
-</body>
+  </div>  <!-- ⚡ WHAT CHANGED -->  <div class="card">
+    <h2>⚡ What changed today</h2>
+    <ul>
+      <li>Crude ↑</li>
+      <li>FII selling</li>
+    </ul>
+  </div></div><script>
+  function copyMsg() {
+    const text = document.getElementById("msg").innerText;
+    navigator.clipboard.writeText(text);
+    alert("Message copied!");
+  }
+</script></body>
 </html>
