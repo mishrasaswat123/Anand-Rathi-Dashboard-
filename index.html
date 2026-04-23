@@ -1,159 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DSS Engine</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSS Engine</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: white;
-      text-align: center;
-    }
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0b1623;
+    color: white;
+    text-align: center;
+}
 
-    .container {
-      padding: 20px;
-    }
+.container {
+    padding: 20px;
+}
 
-    .card {
-      background: #1c2742;
-      padding: 20px;
-      border-radius: 16px;
-      margin-bottom: 20px;
-    }
+.card {
+    background: #1c2a44;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
 
-    .status {
-      font-size: 18px;
-      margin-top: 10px;
-    }
+button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
 
-    .btn {
-      background: #3b82f6;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
+.status {
+    font-size: 18px;
+    margin-top: 10px;
+}
 
-    .output {
-      background: #1c2742;
-      padding: 15px;
-      border-radius: 12px;
-      margin-top: 20px;
-      text-align: left;
-    }
-
-    .red { color: red; }
-    .green { color: #22c55e; }
-  </style>
+.output {
+    margin-top: 20px;
+    text-align: left;
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-  <div class="card">
-    <h2>📡 Live DSS Engine</h2>
-    <div id="status" class="status red">● Disconnected</div>
-  </div>
+<div class="card">
+<h2>📡 Live DSS Engine</h2>
+<div id="status" class="status">🔴 Disconnected</div>
+</div>
 
-  <button class="btn" onclick="runDSS()">Run DSS</button>
+<button onclick="runDSS()">Run DSS</button>
 
-  <div id="output" class="output"></div>
+<div id="output" class="card output"></div>
 
 </div>
 
 <script>
 
-// ✅ FINAL WORKING API (NGROK HTTPS)
+// 🔥 PUT YOUR NGROK URL HERE
 const API = "https://gutless-mongoose-perfectly.ngrok-free.app/brain";
 
-
-// ===== RUN DSS =====
 async function runDSS() {
 
-  const statusEl = document.getElementById("status");
-  const outputEl = document.getElementById("output");
+    const statusDiv = document.getElementById("status");
+    const outputDiv = document.getElementById("output");
 
-  statusEl.innerHTML = "⏳ Connecting...";
-  statusEl.className = "status";
+    statusDiv.innerHTML = "🟡 Connecting...";
 
-  try {
+    try {
 
-    const payload = {
-      liquidity: "STRONG",
-      rates: "RISING",
-      crude: "RISING",
-      fii: "SELLING"
-    };
+        const payload = {
+            liquidity: "STRONG",
+            rates: "RISING",
+            crude: "RISING",
+            fii: "SELLING"
+        };
 
-    const response = await fetch(API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+        const res = await fetch(API, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
 
-    if (!response.ok) throw new Error("API failed");
+        if (!res.ok) throw new Error("API error");
 
-    const data = await response.json();
+        const data = await res.json();
 
-    statusEl.innerHTML = "🟢 Connected";
-    statusEl.className = "status green";
+        statusDiv.innerHTML = "🟢 Connected";
 
-    renderOutput(data);
+        outputDiv.innerHTML = `
+            <h3>📊 DSS Recommendation</h3>
+            <b>Call:</b> ${data.call.join(", ")}<br><br>
+            <b>Horizon:</b> ${data.horizon}<br><br>
+            <b>Confidence:</b> ${data.confidence}<br><br>
 
-  } catch (err) {
-    statusEl.innerHTML = "🔴 Disconnected";
-    statusEl.className = "status red";
+            <b>Reasons:</b>
+            <ul>${data.reasons.map(r => `<li>${r}</li>`).join("")}</ul>
 
-    outputEl.innerHTML = "❌ Failed to connect to backend";
-    console.error(err);
-  }
-}
+            <b>Impact:</b>
+            <ul>${data.impact.map(i => `<li>${i}</li>`).join("")}</ul>
 
+            <b>Risk:</b>
+            <ul>${data.risk.map(r => `<li>${r}</li>`).join("")}</ul>
 
-// ===== RENDER OUTPUT =====
-function renderOutput(data) {
+            <b>Actions:</b>
+            <ul>${data.actions.map(a => `<li>${a}</li>`).join("")}</ul>
 
-  const outputEl = document.getElementById("output");
+            <b>Message:</b> ${data.message}<br><br>
+            <small>${data.timestamp}</small>
+        `;
 
-  outputEl.innerHTML = `
-    <h3>📊 DSS Recommendation</h3>
-
-    <p><b>Call:</b> ${data.call?.join(", ") || ""}</p>
-    <p><b>Horizon:</b> ${data.horizon || ""}</p>
-    <p><b>Confidence:</b> ${data.confidence || ""}</p>
-
-    <p><b>Reasons:</b></p>
-    <ul>
-      ${(data.reasons || []).map(r => `<li>${r}</li>`).join("")}
-    </ul>
-
-    <p><b>Impact:</b></p>
-    <ul>
-      ${(data.impact || []).map(i => `<li>${i}</li>`).join("")}
-    </ul>
-
-    <p><b>Risks:</b></p>
-    <ul>
-      ${(data.risk || []).map(r => `<li>${r}</li>`).join("")}
-    </ul>
-
-    <p><b>Actions:</b></p>
-    <ul>
-      ${(data.actions || []).map(a => `<li>${a}</li>`).join("")}
-    </ul>
-
-    <p><b>Message:</b> ${data.message || ""}</p>
-    <p><b>Timestamp:</b> ${data.timestamp || ""}</p>
-  `;
+    } catch (err) {
+        statusDiv.innerHTML = "🔴 Disconnected";
+        outputDiv.innerHTML = "❌ Failed to connect to backend";
+        console.error(err);
+    }
 }
 
 </script>
