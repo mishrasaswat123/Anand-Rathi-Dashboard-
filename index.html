@@ -1,16 +1,13 @@
 // ===============================
-// DSS FRONTEND - COMPLETE FILE
+// DSS FRONTEND - FINAL FIX (PROXY SAFE)
 // ===============================
 
-// ✅ API ENDPOINT (UPDATED - NO PORT)
-const API = "http://13.61.104.101/brain";
+// ⚠️ Use a CORS proxy to bypass HTTPS restriction
+const API = "https://corsproxy.io/?http://13.61.104.101/brain";
 
-// ===============================
-// FUNCTION: CALL BRAIN API
 // ===============================
 async function callBrainAPI() {
   try {
-    // Sample payload (you can later connect UI inputs)
     const payload = {
       liquidity: "STRONG",
       rates: "RISING",
@@ -31,18 +28,16 @@ async function callBrainAPI() {
     }
 
     const data = await response.json();
-
-    // Render output
     renderOutput(data);
+
+    updateStatus(true);
 
   } catch (error) {
     console.error(error);
-    alert("API connection failed. Check CORS or port settings.");
+    updateStatus(false);
   }
 }
 
-// ===============================
-// FUNCTION: RENDER OUTPUT
 // ===============================
 function renderOutput(data) {
   const outputDiv = document.getElementById("output");
@@ -50,32 +45,21 @@ function renderOutput(data) {
   outputDiv.innerHTML = `
     <h3>📊 DSS Recommendation</h3>
     <p><strong>Call:</strong> ${data.call.join(", ")}</p>
-    <p><strong>Horizon:</strong> ${data.horizon}</p>
     <p><strong>Confidence:</strong> ${data.confidence}</p>
-    
-    <p><strong>Reasons:</strong></p>
-    <ul>${data.reasons.map(r => `<li>${r}</li>`).join("")}</ul>
-    
-    <p><strong>Impact:</strong></p>
-    <ul>${data.impact.map(i => `<li>${i}</li>`).join("")}</ul>
-    
-    <p><strong>Risks:</strong></p>
-    <ul>${data.risk.map(r => `<li>${r}</li>`).join("")}</ul>
-    
-    <p><strong>Actions:</strong></p>
-    <ul>${data.actions.map(a => `<li>${a}</li>`).join("")}</ul>
-
     <p><strong>Message:</strong> ${data.message}</p>
-    <p><small>${data.timestamp}</small></p>
   `;
 }
 
 // ===============================
-// AUTO TRIGGER (or bind to button)
+function updateStatus(isConnected) {
+  const status = document.getElementById("status");
+
+  if (isConnected) {
+    status.innerHTML = "🟢 Connected";
+  } else {
+    status.innerHTML = "🔴 Disconnected";
+  }
+}
+
 // ===============================
-
-// If you have a button:
-// document.getElementById("runBtn").addEventListener("click", callBrainAPI);
-
-// Auto run on load (optional)
 callBrainAPI();
