@@ -12,6 +12,8 @@
 
     .container {
       padding: 16px;
+      max-width: 600px;
+      margin: auto;
     }
 
     .card {
@@ -24,6 +26,7 @@
 
     h2 {
       margin-top: 0;
+      margin-bottom: 10px;
     }
 
     .highlight {
@@ -42,12 +45,17 @@
     button {
       background: #3b82f6;
       border: none;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
       color: white;
       width: 100%;
       margin-top: 10px;
       cursor: pointer;
+      font-size: 16px;
+    }
+
+    ul {
+      padding-left: 18px;
     }
   </style></head><body>
 <div class="container">  <div class="card">
@@ -62,7 +70,7 @@
     <h2>🔗 Impact Chain</h2>
     <ul id="impact"></ul>
   </div>  <div class="card">
-    <h2>⚠️ Risk</h2>
+    <h2>⚠️ Risk Factors</h2>
     <ul id="risk"></ul>
   </div>  <div class="card">
     <h2>📩 Client Message</h2>
@@ -70,62 +78,69 @@
     <button onclick="copyMessage()">Copy Message</button>
   </div></div><script>
 
-const API = "http://YOUR-EC2-IP:5000/brain"; // 🔴 CHANGE THIS
+const API = "http://13.61.104.101:5000/brain"; // ✅ YOUR PUBLIC IP
 
 async function loadData() {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      liquidity: "STRONG",
-      rates: "RISING",
-      crude: "RISING",
-      fii: "SELLING"
-    })
-  });
-
-  const data = await res.json();
-
-  // CALL
-  const callDiv = document.getElementById("call");
-  callDiv.innerHTML = "";
-  data.call.forEach(c => {
-    const div = document.createElement("div");
-    div.className = "highlight";
-    div.innerText = c;
-    callDiv.appendChild(div);
-  });
-
-  // BASIC
-  document.getElementById("horizon").innerText = data.horizon;
-  document.getElementById("confidence").innerText = data.confidence;
-
-  // LIST HELPERS
-  function fillList(id, arr) {
-    const el = document.getElementById(id);
-    el.innerHTML = "";
-    arr.forEach(item => {
-      const li = document.createElement("li");
-      li.innerText = item;
-      el.appendChild(li);
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        liquidity: "STRONG",
+        rates: "RISING",
+        crude: "RISING",
+        fii: "SELLING"
+      })
     });
+
+    const data = await res.json();
+
+    // Populate CALL
+    const callDiv = document.getElementById("call");
+    callDiv.innerHTML = "";
+    data.call.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "highlight";
+      div.innerText = c;
+      callDiv.appendChild(div);
+    });
+
+    // Basic fields
+    document.getElementById("horizon").innerText = data.horizon;
+    document.getElementById("confidence").innerText = data.confidence;
+
+    // Helper for lists
+    function fillList(id, arr) {
+      const el = document.getElementById(id);
+      el.innerHTML = "";
+      arr.forEach(item => {
+        const li = document.createElement("li");
+        li.innerText = item;
+        el.appendChild(li);
+      });
+    }
+
+    fillList("reasons", data.reasons);
+    fillList("impact", data.impact);
+    fillList("risk", data.risk);
+
+    document.getElementById("message").innerText = data.message;
+
+  } catch (err) {
+    console.error(err);
+    alert("API connection failed. Check CORS or port settings.");
   }
-
-  fillList("reasons", data.reasons);
-  fillList("impact", data.impact);
-  fillList("risk", data.risk);
-
-  document.getElementById("message").innerText = data.message;
 }
 
 function copyMessage() {
   const text = document.getElementById("message").innerText;
   navigator.clipboard.writeText(text);
-  alert("Copied!");
+  alert("Message copied");
 }
 
+// Load on start
 loadData();
 
 </script></body>
