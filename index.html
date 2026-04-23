@@ -1,9 +1,9 @@
 // ===============================
-// DSS FRONTEND - FINAL FIX (PROXY SAFE)
+// DSS FRONTEND - FINAL FIX (TEMPLATE BUG + CORS)
 // ===============================
 
-// ⚠️ Use a CORS proxy to bypass HTTPS restriction
-const API = "https://corsproxy.io/?http://13.61.104.101/brain";
+// Use proxy (temporary fix for HTTPS issue)
+const API = "https://corsproxy.io/?http://13.61.104.101:5000/brain";
 
 // ===============================
 async function callBrainAPI() {
@@ -24,16 +24,16 @@ async function callBrainAPI() {
     });
 
     if (!response.ok) {
-      throw new Error("API response error");
+      throw new Error("API error");
     }
 
     const data = await response.json();
-    renderOutput(data);
 
+    renderOutput(data);
     updateStatus(true);
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     updateStatus(false);
   }
 }
@@ -44,9 +44,33 @@ function renderOutput(data) {
 
   outputDiv.innerHTML = `
     <h3>📊 DSS Recommendation</h3>
+
     <p><strong>Call:</strong> ${data.call.join(", ")}</p>
+    <p><strong>Horizon:</strong> ${data.horizon}</p>
     <p><strong>Confidence:</strong> ${data.confidence}</p>
+
+    <p><strong>Reasons:</strong></p>
+    <ul>
+      ${data.reasons.map(r => `<li>${r}</li>`).join("")}
+    </ul>
+
+    <p><strong>Impact:</strong></p>
+    <ul>
+      ${data.impact.map(i => `<li>${i}</li>`).join("")}
+    </ul>
+
+    <p><strong>Risks:</strong></p>
+    <ul>
+      ${data.risk.map(r => `<li>${r}</li>`).join("")}
+    </ul>
+
+    <p><strong>Actions:</strong></p>
+    <ul>
+      ${data.actions.map(a => `<li>${a}</li>`).join("")}
+    </ul>
+
     <p><strong>Message:</strong> ${data.message}</p>
+    <p><small>${data.timestamp}</small></p>
   `;
 }
 
@@ -54,11 +78,9 @@ function renderOutput(data) {
 function updateStatus(isConnected) {
   const status = document.getElementById("status");
 
-  if (isConnected) {
-    status.innerHTML = "🟢 Connected";
-  } else {
-    status.innerHTML = "🔴 Disconnected";
-  }
+  status.innerHTML = isConnected
+    ? "🟢 Connected"
+    : "🔴 Disconnected";
 }
 
 // ===============================
