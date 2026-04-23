@@ -1,199 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSS Dashboard</title>
+// ===============================
+// DSS FRONTEND - COMPLETE FILE
+// ===============================
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
-}
+// ✅ API ENDPOINT (UPDATED - NO PORT)
+const API = "http://13.61.104.101/brain";
 
-.container {
-  padding: 16px;
-}
-
-.card {
-  background: #1e293b;
-  padding: 16px;
-  border-radius: 16px;
-  margin-bottom: 16px;
-}
-
-h2 {
-  margin: 0 0 10px 0;
-}
-
-.button {
-  background: #22c55e;
-  padding: 12px;
-  border-radius: 12px;
-  text-align: center;
-  margin-top: 10px;
-  cursor: pointer;
-}
-
-.loading {
-  text-align: center;
-  padding: 20px;
-}
-
-.error {
-  color: red;
-}
-
-.progress {
-  height: 8px;
-  background: #334155;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #22c55e;
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-  <div class="card">
-    <h2>📡 Live DSS Engine</h2>
-    <div id="status">Connecting...</div>
-  </div>
-
-  <div id="dashboard" style="display:none;">
-
-    <div class="card">
-      <h2>📢 TODAY'S CALL</h2>
-      <div id="calls"></div>
-      <p><b>Horizon:</b> <span id="horizon"></span></p>
-      <p><b>Confidence:</b></p>
-      <div class="progress"><div id="confidenceBar" class="progress-bar"></div></div>
-    </div>
-
-    <div class="card">
-      <h2>🧠 Why this call?</h2>
-      <ul id="reasons"></ul>
-    </div>
-
-    <div class="card">
-      <h2>🔗 Impact Chain</h2>
-      <ul id="impact"></ul>
-    </div>
-
-    <div class="card">
-      <h2>⚠️ Risk</h2>
-      <ul id="risk"></ul>
-    </div>
-
-    <div class="card">
-      <h2>✅ Actions</h2>
-      <ul id="actions"></ul>
-    </div>
-
-    <div class="card">
-      <h2>📩 Client Message</h2>
-      <p id="message"></p>
-      <div class="button" onclick="copyMessage()">Copy Message</div>
-    </div>
-
-  </div>
-
-  <div id="loading" class="loading">⏳ Loading live signals...</div>
-  <div id="error" class="error"></div>
-
-</div>
-
-<script>
-
-const API = "http://13.61.104.101:5000/brain";
-
-async function loadData() {
+// ===============================
+// FUNCTION: CALL BRAIN API
+// ===============================
+async function callBrainAPI() {
   try {
-    document.getElementById("status").innerText = "Connecting to Brain...";
-    
-    const res = await fetch(API, {
+    // Sample payload (you can later connect UI inputs)
+    const payload = {
+      liquidity: "STRONG",
+      rates: "RISING",
+      crude: "RISING",
+      fii: "SELLING"
+    };
+
+    const response = await fetch(API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        liquidity: "STRONG",
-        rates: "RISING",
-        crude: "RISING",
-        fii: "SELLING"
-      })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    if (!response.ok) {
+      throw new Error("API response error");
+    }
 
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-    document.getElementById("status").innerText = "🟢 Connected";
+    const data = await response.json();
 
-    // Calls
-    const callsDiv = document.getElementById("calls");
-    callsDiv.innerHTML = "";
-    data.call.forEach(c => {
-      const el = document.createElement("div");
-      el.className = "button";
-      el.innerText = c;
-      callsDiv.appendChild(el);
-    });
+    // Render output
+    renderOutput(data);
 
-    // Horizon
-    document.getElementById("horizon").innerText = data.horizon;
-
-    // Confidence
-    const confidenceValue = data.confidence === "HIGH" ? 80 : 50;
-    document.getElementById("confidenceBar").style.width = confidenceValue + "%";
-
-    // Lists
-    renderList("reasons", data.reasons);
-    renderList("impact", data.impact);
-    renderList("risk", data.risk);
-    renderList("actions", data.actions);
-
-    // Message
-    document.getElementById("message").innerText = data.message;
-
-  } catch (err) {
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("error").innerText = "❌ Failed to connect to backend";
-    document.getElementById("status").innerText = "🔴 Disconnected";
+  } catch (error) {
+    console.error(error);
+    alert("API connection failed. Check CORS or port settings.");
   }
 }
 
-function renderList(id, items) {
-  const ul = document.getElementById(id);
-  ul.innerHTML = "";
-  items.forEach(i => {
-    const li = document.createElement("li");
-    li.innerText = i;
-    ul.appendChild(li);
-  });
+// ===============================
+// FUNCTION: RENDER OUTPUT
+// ===============================
+function renderOutput(data) {
+  const outputDiv = document.getElementById("output");
+
+  outputDiv.innerHTML = `
+    <h3>📊 DSS Recommendation</h3>
+    <p><strong>Call:</strong> ${data.call.join(", ")}</p>
+    <p><strong>Horizon:</strong> ${data.horizon}</p>
+    <p><strong>Confidence:</strong> ${data.confidence}</p>
+    
+    <p><strong>Reasons:</strong></p>
+    <ul>${data.reasons.map(r => `<li>${r}</li>`).join("")}</ul>
+    
+    <p><strong>Impact:</strong></p>
+    <ul>${data.impact.map(i => `<li>${i}</li>`).join("")}</ul>
+    
+    <p><strong>Risks:</strong></p>
+    <ul>${data.risk.map(r => `<li>${r}</li>`).join("")}</ul>
+    
+    <p><strong>Actions:</strong></p>
+    <ul>${data.actions.map(a => `<li>${a}</li>`).join("")}</ul>
+
+    <p><strong>Message:</strong> ${data.message}</p>
+    <p><small>${data.timestamp}</small></p>
+  `;
 }
 
-function copyMessage() {
-  const text = document.getElementById("message").innerText;
-  navigator.clipboard.writeText(text);
-  alert("Message copied");
-}
+// ===============================
+// AUTO TRIGGER (or bind to button)
+// ===============================
 
-// Auto refresh every 10 sec
-setInterval(loadData, 10000);
+// If you have a button:
+// document.getElementById("runBtn").addEventListener("click", callBrainAPI);
 
-// Initial load
-loadData();
-
-</script>
-
-</body>
-</html>
+// Auto run on load (optional)
+callBrainAPI();
