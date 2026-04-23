@@ -1,87 +1,109 @@
-// ===============================
-// DSS FRONTEND - FINAL FIX (TEMPLATE BUG + CORS)
-// ===============================
-
-// Use proxy (temporary fix for HTTPS issue)
-const API = "https://corsproxy.io/?http://13.61.104.101:5000/brain";
-
-// ===============================
-async function callBrainAPI() {
-  try {
-    const payload = {
-      liquidity: "STRONG",
-      rates: "RISING",
-      crude: "RISING",
-      fii: "SELLING"
-    };
-
-    const response = await fetch(API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error("API error");
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DSS Engine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1320;
+      color: white;
+      text-align: center;
+      padding: 20px;
     }
 
-    const data = await response.json();
+    .card {
+      background: #1c2541;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
 
-    renderOutput(data);
-    updateStatus(true);
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #3a86ff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
 
-  } catch (err) {
-    console.error(err);
-    updateStatus(false);
-  }
-}
+    ul {
+      text-align: left;
+      max-width: 400px;
+      margin: auto;
+    }
+  </style></head><body>  <div class="card">
+    <h2>📡 Live DSS Engine</h2>
+    <p id="status">🔴 Disconnected</p>
+  </div><button onclick="callBrainAPI()">Run DSS</button>
 
-// ===============================
-function renderOutput(data) {
-  const outputDiv = document.getElementById("output");
+  <div id="output" class="card"></div>  <script>
+    const API = "https://corsproxy.io/?http://13.61.104.101:5000/brain";
 
-  outputDiv.innerHTML = `
-    <h3>📊 DSS Recommendation</h3>
+    async function callBrainAPI() {
+      try {
+        const payload = {
+          liquidity: "STRONG",
+          rates: "RISING",
+          crude: "RISING",
+          fii: "SELLING"
+        };
 
-    <p><strong>Call:</strong> ${data.call.join(", ")}</p>
-    <p><strong>Horizon:</strong> ${data.horizon}</p>
-    <p><strong>Confidence:</strong> ${data.confidence}</p>
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
 
-    <p><strong>Reasons:</strong></p>
-    <ul>
-      ${data.reasons.map(r => `<li>${r}</li>`).join("")}
-    </ul>
+        const data = await res.json();
 
-    <p><strong>Impact:</strong></p>
-    <ul>
-      ${data.impact.map(i => `<li>${i}</li>`).join("")}
-    </ul>
+        renderOutput(data);
+        updateStatus(true);
 
-    <p><strong>Risks:</strong></p>
-    <ul>
-      ${data.risk.map(r => `<li>${r}</li>`).join("")}
-    </ul>
+      } catch (err) {
+        console.error(err);
+        updateStatus(false);
+      }
+    }
 
-    <p><strong>Actions:</strong></p>
-    <ul>
-      ${data.actions.map(a => `<li>${a}</li>`).join("")}
-    </ul>
+    function renderOutput(data) {
+      const outputDiv = document.getElementById("output");
 
-    <p><strong>Message:</strong> ${data.message}</p>
-    <p><small>${data.timestamp}</small></p>
-  `;
-}
+      outputDiv.innerHTML = `
+        <h3>📊 DSS Recommendation</h3>
 
-// ===============================
-function updateStatus(isConnected) {
-  const status = document.getElementById("status");
+        <p><b>Call:</b> ${data.call.join(", ")}</p>
+        <p><b>Horizon:</b> ${data.horizon}</p>
+        <p><b>Confidence:</b> ${data.confidence}</p>
 
-  status.innerHTML = isConnected
-    ? "🟢 Connected"
-    : "🔴 Disconnected";
-}
+        <p><b>Reasons:</b></p>
+        <ul>
+          ${data.reasons.map(r => `<li>${r}</li>`).join("")}
+        </ul>
 
-// ===============================
-callBrainAPI();
+        <p><b>Impact:</b></p>
+        <ul>
+          ${data.impact.map(i => `<li>${i}</li>`).join("")}
+        </ul>
+
+        <p><b>Risks:</b></p>
+        <ul>
+          ${data.risk.map(r => `<li>${r}</li>`).join("")}
+        </ul>
+
+        <p><b>Actions:</b></p>
+        <ul>
+          ${data.actions.map(a => `<li>${a}</li>`).join("")}
+        </ul>
+
+        <p><b>Message:</b> ${data.message}</p>
+        <p><small>${data.timestamp}</small></p>
+      `;
+    }
+
+    function updateStatus(ok) {
+      document.getElementById("status").innerText =
+        ok ? "🟢 Connected" : "🔴 Disconnected";
+    }
+  </script></body>
+</html>
